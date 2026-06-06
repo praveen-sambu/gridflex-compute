@@ -7,7 +7,8 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 
-from .coordination_kernel_client import schedule_with_coordination_kernel
+from .coordination_kernel_client import get_coordination_kernel_status, schedule_with_coordination_kernel
+from .gpu_pulse_demo import gpu_pulse_capabilities, run_gpu_pulse_demo
 from .live_carbon_signal import fetch_live_carbon_signal
 from .nim_explainer import explain_decision_with_nim, get_nim_status
 
@@ -297,6 +298,163 @@ def _build_carbon_orchestration_demo() -> dict[str, Any]:
     }
 
 
+def _select_control_loop_job(payload: dict[str, Any]) -> dict[str, Any]:
+    workloads = payload.get("workloads")
+    if isinstance(workloads, list):
+        for workload in workloads:
+            if not isinstance(workload, dict):
+                continue
+            workload_type = str(workload.get("workload_type") or "").lower()
+            if any(token in workload_type for token in ("finetune", "training")):
+                return dict(workload)
+
+    return {
+        "job_id": "control-loop-job-001",
+        "tenant": "ai-factory",
+        "workload_type": "llm_finetune",
+        "submitted_at": "2026-06-06T12:00:00Z",
+        "duration_minutes": 120,
+        "gpu_count": 8,
+        "estimated_energy_kwh": 42.0,
+        "urgency_class": "batch-flexible",
+        "deadline_at": "2026-06-06T18:00:00Z",
+    }
+
+
+def _control_decision_from_signal(
+    job: dict[str, Any],
+    live_carbon: dict[str, Any],
+    local_decision: dict[str, Any] | None,
+    coordination_used: bool,
+) -> tuple[str, str, float, float]:
+    estimated_energy_kwh = _safe_float(job.get("estimated_energy_kwh"))
+    recommendation = str(live_carbon.get("recommendation") or "use_gridflex_forecast")
+    carbon_value = live_carbon.get("current_intensity")
+    carbon_text = f"{float(carbon_value):.0f} gCO2/kWh" if isinstance(carbon_value, (int, float)) else "fallback forecast"
+    delay_minutes = _safe_float(local_decision.get("delay_minutes")) if isinstance(local_decision, dict) else 0.0
+
+    if recommendation == "run_now":
+        reason = f"Live carbon is low at {carbon_text}, so the incoming training job can run now."
+        if coordination_used and delay_minutes > 0:
+            return (
+                "run_selective",
+                reason[:-1] + " while the coordination API keeps some flexible steps movable.",
+                round(estimated_energy_kwh * 0.35, 2),
+                delay_minutes,
+            )
+        return ("run_now", reason, 0.0, 0.0)
+
+    if recommendation == "run_selective":
+        reason = f"Live carbon is moderate at {carbon_text}, so only urgent setup and checkpoint work should run now."
+        return ("run_selective", reason, round(estimated_energy_kwh * 0.4, 2), max(delay_minutes, 30.0))
+
+    reason = f"Live carbon is elevated at {carbon_text}, so flexible DGX training should wait for a cleaner window."
+    return ("delay", reason, round(estimated_energy_kwh, 2), max(delay_minutes, 60.0))
+
+
+def _build_control_loop_demo() -> dict[str, Any]:
+    active_name, payload, dgx_available = _active_payload()
+    live_carbon = fetch_live_carbon_signal()
+    coordination_status = get_coordination_kernel_status()
+    nim_status = get_nim_status()
+    sample_job = _select_control_loop_job(payload)
+    local_decision = next(
+        (
+            decision
+            for decision in payload.get("decisions", [])
+            if isinstance(decision, dict) and decision.get("job_id") == sample_job.get("job_id")
+        ),
+        None,
+    )
+
+    coordination_result = schedule_with_coordination_kernel(
+        grid_windows=payload.get("grid_windows", []),
+        workloads=[sample_job],
+    )
+    coordination_used = coordination_result is not None
+    coordination_decision = None
+    if isinstance(coordination_result, dict):
+        decisions = coordination_result.get("decisions")
+        if isinstance(decisions, list) and decisions and isinstance(decisions[0], dict):
+            coordination_decision = decisions[0]
+
+    decision, reason, estimated_energy_shifted, delay_minutes = _control_decision_from_signal(
+        sample_job,
+        live_carbon,
+        coordination_decision or local_decision,
+        coordination_used,
+    )
+
+    chosen_decision = coordination_decision or local_decision or {}
+    current_window = payload.get("grid_windows", [None])[0] if isinstance(payload.get("grid_windows"), list) else None
+    nim_response = explain_decision_with_nim(
+        {
+            "job_id": sample_job.get("job_id"),
+            "decision": decision,
+            "reason_code": chosen_decision.get("reason_code") or "LIVE_CARBON_POLICY",
+            "grid_stress_before": chosen_decision.get("grid_stress_before") or (current_window or {}).get("predicted_grid_stress_score") or (current_window or {}).get("grid_stress_score"),
+            "grid_stress_after": chosen_decision.get("grid_stress_after") or chosen_decision.get("grid_stress_before") or (current_window or {}).get("predicted_grid_stress_score") or (current_window or {}).get("grid_stress_score"),
+            "delay_minutes": delay_minutes,
+            "deadline_protected": True,
+            "carbon_signal": live_carbon.get("index") or live_carbon.get("recommendation"),
+            "workload_type": sample_job.get("workload_type"),
+        }
+    )
+
+    return {
+        "status": "ok",
+        "active_payload": active_name,
+        "live_carbon_signal": live_carbon,
+        "sample_incoming_ai_training_job": sample_job,
+        "decision": decision,
+        "reason": reason,
+        "estimated_energy_shifted_kwh": estimated_energy_shifted,
+        "operator_message": nim_response["operator_message"],
+        "source_fields": {
+            "live_carbon_used": live_carbon.get("status") == "ok",
+            "coordination_api_used": coordination_used,
+            "coordination_api_fallback": not coordination_used,
+            "nemotron_used": nim_response.get("source") == "nvidia-nim",
+            "nemotron_fallback": nim_response.get("source") != "nvidia-nim",
+            "dgx_payload_used": dgx_available,
+        },
+        "sources": {
+            "live_carbon_used": live_carbon.get("status") == "ok",
+            "coordination_api_used": coordination_used,
+            "coordination_api_fallback": not coordination_used,
+            "nemotron_used": nim_response.get("source") == "nvidia-nim",
+            "nemotron_fallback": nim_response.get("source") != "nvidia-nim",
+            "dgx_payload_used": dgx_available,
+        },
+        "component_sources": {
+            "live_carbon": live_carbon.get("source"),
+            "coordination_api": coordination_status["mode"],
+            "nemotron": nim_response.get("source"),
+            "dgx_payload": "dgx" if dgx_available else active_name,
+            "gpu_pulse": gpu_pulse_capabilities(),
+        },
+        "readiness": _demo_readiness(),
+    }
+
+
+def _demo_readiness() -> dict[str, Any]:
+    active_name, _, dgx_available = _active_payload()
+    live_carbon = fetch_live_carbon_signal()
+    coordination_status = get_coordination_kernel_status()
+    nim_status = get_nim_status()
+    pulse_status = gpu_pulse_capabilities()
+    return {
+        "dgx_backend_ready": pulse_status["nvidia_smi_available"] or pulse_status["nvcc_available"],
+        "demo_payload_ready": active_name in {"dgx", "mock"},
+        "live_carbon_ready": live_carbon.get("status") == "ok",
+        "coordination_api_ready_public": coordination_status["configured"],
+        "nim_configured": nim_status["nim_enabled"],
+        "gpu_pulse_enabled": pulse_status["gpu_pulse_enabled"],
+        "metrics_ready": True,
+        "dgx_payload_used": dgx_available,
+    }
+
+
 def _safe_float(value: Any) -> float:
     try:
         return float(value)
@@ -369,6 +527,21 @@ def health():
 def demo():
     _, payload, _ = _active_payload()
     return payload
+
+
+@app.get("/api/v1/control-loop-demo")
+def control_loop_demo():
+    return _build_control_loop_demo()
+
+
+@app.post("/api/v1/gpu-pulse-demo")
+def gpu_pulse_demo():
+    return run_gpu_pulse_demo()
+
+
+@app.get("/api/v1/demo-readiness")
+def demo_readiness():
+    return _demo_readiness()
 
 
 @app.get("/api/v1/demo-coord")

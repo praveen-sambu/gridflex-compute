@@ -25,6 +25,20 @@ def _coordination_kernel_key() -> str | None:
     return value or None
 
 
+def get_coordination_kernel_status() -> dict[str, Any]:
+    api_url = _coordination_kernel_url()
+    api_key_available = _coordination_kernel_key() is not None
+    enabled = _coordination_kernel_enabled()
+    configured = enabled and bool(api_url) and api_key_available
+    return {
+        "enabled": enabled,
+        "configured": configured,
+        "public_base_url": api_url,
+        "api_key_available": api_key_available,
+        "mode": "remote" if configured else "fallback",
+    }
+
+
 def _extract_schedule_result(payload: Any) -> dict[str, Any] | None:
     candidates: list[Any] = [payload]
     if isinstance(payload, dict):

@@ -189,6 +189,9 @@ export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl 
             <Link className="button" href="/dashboard/live-carbon">
               Open Live Carbon Orchestrator
             </Link>
+            <Link className="button" href="/dashboard/control-loop">
+              Open Control Loop Demo
+            </Link>
           </div>
         </section>
       ) : null}

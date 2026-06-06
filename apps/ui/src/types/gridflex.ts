@@ -104,3 +104,81 @@ export type CarbonOrchestrationResponse = {
   workloads: CarbonOrchestrationWorkload[];
   operator_summary: string;
 };
+
+export type DemoReadinessResponse = {
+  dgx_backend_ready: boolean;
+  demo_payload_ready: boolean;
+  live_carbon_ready: boolean;
+  coordination_api_ready_public: boolean;
+  nim_configured: boolean;
+  gpu_pulse_enabled: boolean;
+  metrics_ready: boolean;
+  dgx_payload_used?: boolean;
+};
+
+export type GpuPulseCapabilities = {
+  gpu_pulse_enabled: boolean;
+  nvidia_smi_available: boolean;
+  nvcc_available: boolean;
+  numpy_available: boolean;
+};
+
+export type ControlLoopSourceFlags = {
+  live_carbon_used: boolean;
+  coordination_api_used: boolean;
+  coordination_api_fallback: boolean;
+  nemotron_used: boolean;
+  nemotron_fallback: boolean;
+  dgx_payload_used: boolean;
+};
+
+export type ControlLoopComponentSources = {
+  live_carbon: string;
+  coordination_api: string;
+  nemotron: string;
+  dgx_payload: string;
+  gpu_pulse: GpuPulseCapabilities;
+};
+
+export type ControlLoopIncomingJob = {
+  job_id: string;
+  tenant: string;
+  workload_type: string;
+  submitted_at: string;
+  duration_minutes: number;
+  gpu_count: number;
+  estimated_energy_kwh: number;
+  urgency_class: string;
+  deadline_at: string;
+};
+
+export type ControlLoopDemoResponse = {
+  status: string;
+  active_payload: string;
+  live_carbon_signal: LiveCarbonSignalResponse;
+  sample_incoming_ai_training_job: ControlLoopIncomingJob;
+  decision: string;
+  reason: string;
+  estimated_energy_shifted_kwh: number;
+  operator_message: string;
+  source_fields: ControlLoopSourceFlags;
+  sources: ControlLoopSourceFlags;
+  component_sources: ControlLoopComponentSources;
+  readiness: DemoReadinessResponse;
+};
+
+export type GpuPulseDemoResponse = {
+  status: "ok" | "disabled";
+  message?: string;
+  started_at?: string;
+  duration_ms?: number;
+  backend_used?: string;
+  safe_limit_seconds?: number;
+  nvidia_smi_before?: string | null;
+  nvidia_smi_after?: string | null;
+  details?: {
+    iterations: number;
+    checksum: number;
+    target_runtime_seconds: number;
+  };
+};

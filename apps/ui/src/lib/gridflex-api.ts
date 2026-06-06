@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { CarbonOrchestrationResponse, GridFlexResponse } from "@/types/gridflex";
+import type { CarbonOrchestrationResponse, ControlLoopDemoResponse, DemoReadinessResponse, GridFlexResponse } from "@/types/gridflex";
 
 export type DemoDataResult = {
   data: GridFlexResponse;
@@ -12,6 +12,14 @@ export type DemoDataResult = {
 
 export type CarbonOrchestrationDataResult = {
   data: CarbonOrchestrationResponse | null;
+  source: "api" | "unavailable";
+  apiBaseUrl: string | null;
+  error: string | null;
+};
+
+export type ControlLoopDashboardDataResult = {
+  controlLoop: ControlLoopDemoResponse | null;
+  readiness: DemoReadinessResponse | null;
   source: "api" | "unavailable";
   apiBaseUrl: string | null;
   error: string | null;
@@ -115,6 +123,38 @@ export async function getCarbonOrchestrationDemoData(): Promise<CarbonOrchestrat
 
   return {
     data: null,
+    source: "unavailable",
+    apiBaseUrl: resolveBaseUrls()[0] ?? null,
+    error: attemptedErrors.join("; ") || "API unavailable"
+  };
+}
+
+export async function getControlLoopDashboardData(): Promise<ControlLoopDashboardDataResult> {
+  const attemptedErrors: string[] = [];
+
+  for (const baseUrl of resolveBaseUrls()) {
+    try {
+      const [controlLoop, readiness] = await Promise.all([
+        fetchJsonFromApi<ControlLoopDemoResponse>(baseUrl, "/api/v1/control-loop-demo"),
+        fetchJsonFromApi<DemoReadinessResponse>(baseUrl, "/api/v1/demo-readiness")
+      ]);
+
+      return {
+        controlLoop,
+        readiness,
+        source: "api",
+        apiBaseUrl: baseUrl,
+        error: null
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      attemptedErrors.push(`${baseUrl}: ${message}`);
+    }
+  }
+
+  return {
+    controlLoop: null,
+    readiness: null,
     source: "unavailable",
     apiBaseUrl: resolveBaseUrls()[0] ?? null,
     error: attemptedErrors.join("; ") || "API unavailable"

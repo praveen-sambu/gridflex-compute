@@ -476,11 +476,74 @@ th {
   color: var(--muted);
 }
 
+.voice-agent-hero {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.voice-agent-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.voice-agent-subpanel {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.voice-agent-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 18px;
+}
+
+.voice-chat-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.voice-agent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.voice-agent-note {
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.voice-chat-input-row {
+  display: grid;
+  gap: 12px;
+}
+
+.voice-agent-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+}
+
+.voice-agent-audio {
+  width: 100%;
+}
+
 @media (max-width: 900px) {
   .hero,
   .dashboard-grid,
   .kpi-grid,
   .control-loop-grid,
+  .voice-agent-grid,
+  .voice-agent-summary-grid,
   .status-grid,
   .pulse-metrics {
     grid-template-columns: 1fr;

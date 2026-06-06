@@ -19,6 +19,10 @@ data/processed/
 apps/dgx_pipeline/outputs/data_profile.json
 apps/dgx_pipeline/outputs/data_processing_report.md
 
+# Voice-agent runtime artifacts stay local during the event
+data/runtime/
+artifacts/voice-agent-session-export/
+
 # OS/editor artifacts
 .DS_Store
 Thumbs.db

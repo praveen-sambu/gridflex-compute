@@ -192,6 +192,9 @@ export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl 
             <Link className="button" href="/dashboard/control-loop">
               Open Control Loop Demo
             </Link>
+            <Link className="button" href="/dashboard/voice-agent">
+              Open Voice Agent
+            </Link>
           </div>
         </section>
       ) : null}

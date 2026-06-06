@@ -182,3 +182,48 @@ export type GpuPulseDemoResponse = {
     target_runtime_seconds: number;
   };
 };
+
+export type VoiceAgentEvent = {
+  timestamp: string;
+  session_id: string;
+  event_type: string;
+  payload: Record<string, unknown>;
+};
+
+export type VoiceAgentStatusResponse = {
+  status: string;
+  session_id: string;
+  started_at: string;
+  uptime_minutes: number;
+  target_minutes: number;
+  events_logged: number;
+  nemotron_configured: boolean;
+  elevenlabs_configured: boolean;
+  session_logging_active: boolean;
+};
+
+export type VoiceAgentSessionResponse = {
+  session_id: string;
+  events: VoiceAgentEvent[];
+  events_logged: number;
+};
+
+export type VoiceAgentEvidenceResponse = {
+  session_started_at: string;
+  current_time: string;
+  uptime_minutes: number;
+  target_minutes: number;
+  target_met: boolean;
+  events_logged: number;
+  log_file: string;
+};
+
+export type VoiceAgentMessageResponse = {
+  source: "nvidia-nemotron" | "fallback" | string;
+  reply: string;
+  memory_used: boolean;
+  events_logged: number;
+  audio_available: boolean;
+  audio_url: string | null;
+  fallback_reason?: string | null;
+};

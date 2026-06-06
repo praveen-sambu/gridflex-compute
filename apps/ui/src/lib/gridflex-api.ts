@@ -1,7 +1,15 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { CarbonOrchestrationResponse, ControlLoopDemoResponse, DemoReadinessResponse, GridFlexResponse } from "@/types/gridflex";
+import type {
+  CarbonOrchestrationResponse,
+  ControlLoopDemoResponse,
+  DemoReadinessResponse,
+  GridFlexResponse,
+  VoiceAgentEvidenceResponse,
+  VoiceAgentSessionResponse,
+  VoiceAgentStatusResponse,
+} from "@/types/gridflex";
 
 export type DemoDataResult = {
   data: GridFlexResponse;
@@ -20,6 +28,15 @@ export type CarbonOrchestrationDataResult = {
 export type ControlLoopDashboardDataResult = {
   controlLoop: ControlLoopDemoResponse | null;
   readiness: DemoReadinessResponse | null;
+  source: "api" | "unavailable";
+  apiBaseUrl: string | null;
+  error: string | null;
+};
+
+export type VoiceAgentDashboardDataResult = {
+  status: VoiceAgentStatusResponse | null;
+  session: VoiceAgentSessionResponse | null;
+  evidence: VoiceAgentEvidenceResponse | null;
   source: "api" | "unavailable";
   apiBaseUrl: string | null;
   error: string | null;
@@ -158,5 +175,40 @@ export async function getControlLoopDashboardData(): Promise<ControlLoopDashboar
     source: "unavailable",
     apiBaseUrl: resolveBaseUrls()[0] ?? null,
     error: attemptedErrors.join("; ") || "API unavailable"
+  };
+}
+
+export async function getVoiceAgentDashboardData(): Promise<VoiceAgentDashboardDataResult> {
+  const attemptedErrors: string[] = [];
+
+  for (const baseUrl of resolveBaseUrls()) {
+    try {
+      const [status, session, evidence] = await Promise.all([
+        fetchJsonFromApi<VoiceAgentStatusResponse>(baseUrl, "/api/v1/voice-agent/status"),
+        fetchJsonFromApi<VoiceAgentSessionResponse>(baseUrl, "/api/v1/voice-agent/session"),
+        fetchJsonFromApi<VoiceAgentEvidenceResponse>(baseUrl, "/api/v1/voice-agent/evidence"),
+      ]);
+
+      return {
+        status,
+        session,
+        evidence,
+        source: "api",
+        apiBaseUrl: baseUrl,
+        error: null,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      attemptedErrors.push(`${baseUrl}: ${message}`);
+    }
+  }
+
+  return {
+    status: null,
+    session: null,
+    evidence: null,
+    source: "unavailable",
+    apiBaseUrl: resolveBaseUrls()[0] ?? null,
+    error: attemptedErrors.join("; ") || "API unavailable",
   };
 }

@@ -1,13 +1,32 @@
 # GridFlex Grafana Demo Setup
 
-This setup assumes the GridFlex backend API is already running on DGX and serving metrics at `http://scan-12.local:8000/metrics`.
+This observability layer is optional. It should sit beside the GridFlex demo, not become a dependency for `/api/v1/demo` or the main presentation flow.
 
-## 1. Test the metrics endpoint
+## 1. Choose the scrape target
+
+Use one of these Prometheus targets:
+
+- Local backend: `localhost:8000`
+- Docker-to-local backend: `host.docker.internal:8000`
+- DGX backend from the office network: `scan-12.local:8000`
+
+Prometheus config files already in the repo:
+
+- Local backend config: `infra/prometheus/prometheus.yml`
+- DGX office-network config: `infra/prometheus/prometheus.gridflex-demo.yml`
+
+## 2. Test the metrics endpoint first
 
 From Windows PowerShell:
 
 ```powershell
-curl.exe http://scan-12.local:8000/metrics
+curl.exe -s http://localhost:8000/metrics
+```
+
+If the DGX host is reachable from your current network:
+
+```powershell
+curl.exe -s http://scan-12.local:8000/metrics
 ```
 
 You should see Prometheus text output with metrics such as:
@@ -15,16 +34,25 @@ You should see Prometheus text output with metrics such as:
 - `gridflex_jobs_total`
 - `gridflex_jobs_shifted_total`
 - `gridflex_jobs_admitted_now_total`
+- `gridflex_peak_kwh_avoided`
 - `gridflex_gpu_utilisation_preserved_pct`
 - `gridflex_grid_stress_before`
 - `gridflex_grid_stress_after`
 - `gridflex_deadline_miss_rate`
 - `gridflex_estimated_carbon_saving_kgco2`
+- `gridflex_payload_available`
 - `gridflex_dgx_payload_available`
+- `gridflex_decision_shift_ratio`
 
-## 2. Run Prometheus locally
+## 3. Run Prometheus directly if it is installed locally
 
-If Prometheus is already installed locally, run it from the repo root with the demo scrape config:
+For a local backend on port `8000`:
+
+```powershell
+prometheus --config.file="infra/prometheus/prometheus.yml"
+```
+
+For the office DGX backend when `scan-12.local` resolves:
 
 ```powershell
 prometheus --config.file="infra/prometheus/prometheus.gridflex-demo.yml"
@@ -36,43 +64,63 @@ Default Prometheus UI:
 http://localhost:9090
 ```
 
-## 3. Prometheus scrape target
+## 4. Run the optional Docker observability stack
 
-The demo config scrapes this exact target:
+If you do not have local Prometheus or Grafana binaries, use:
+
+```powershell
+$env:GRIDFLEX_SCRAPE_TARGET = 'host.docker.internal:8000'
+docker compose -f infra/observability/docker-compose.observability.yml up -d
+```
+
+For the DGX backend instead:
+
+```powershell
+$env:GRIDFLEX_SCRAPE_TARGET = 'scan-12.local:8000'
+docker compose -f infra/observability/docker-compose.observability.yml up -d
+```
+
+Expected URLs:
+
+- Prometheus: `http://localhost:9091`
+- Grafana: `http://localhost:3003`
+
+Local demo login:
+
+- Username: `admin`
+- Password: `admin`
+
+Port `9090` is commonly occupied by other local tools. This optional GridFlex stack uses host port `9091` for Prometheus specifically to avoid that conflict.
+
+## 5. Grafana provisioning behavior
+
+The optional Docker Compose stack now auto-provisions:
+
+- Datasource: `GridFlex Prometheus`
+- Dashboard: `GridFlex Compute v2 - DGX Demo`
+
+The datasource points at:
 
 ```text
-scan-12.local:8000
+http://prometheus:9090
 ```
 
-The config file is:
+The dashboard is loaded automatically from the existing repo file:
 
-- `infra/prometheus/prometheus.gridflex-demo.yml`
+- `infra/grafana/gridflex_demo_dashboard.json`
 
-If you prefer to add the job to an existing Prometheus instance, use:
+Manual import is no longer required for the local demo stack.
 
-```yaml
-scrape_configs:
-  - job_name: "gridflex-api-dgx-demo"
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["scan-12.local:8000"]
-```
-
-## 4. Add Prometheus as a Grafana datasource
+## 6. Add Prometheus as a Grafana datasource manually if needed
 
 In Grafana:
 
 1. Open `Connections` > `Data sources`
 2. Add a `Prometheus` datasource
-3. Set the URL to:
-
-```text
-http://localhost:9090
-```
-
+3. Set the URL to `http://prometheus:9090` when using the Docker Compose stack, or `http://localhost:9091` when Grafana is running outside Docker
 4. Save and test the datasource
 
-## 5. Import the GridFlex dashboard JSON
+## 7. Import the GridFlex dashboard JSON manually if needed
 
 Import this file into Grafana:
 
@@ -84,9 +132,9 @@ Dashboard title:
 GridFlex Compute v2 - DGX Demo
 ```
 
-## 6. Expected dashboard panels
+## 8. Expected dashboard panels
 
-The imported dashboard includes:
+The dashboard is built around these metrics:
 
 1. `Jobs Total`
 2. `Jobs Shifted`
@@ -99,7 +147,7 @@ The imported dashboard includes:
 9. `Grid Stress Before vs After`
 10. `DGX Payload Available`
 
-For the current demo payload, you should see values close to:
+For the current demo payload, values should be close to:
 
 - `Jobs Total`: `36`
 - `Jobs Shifted`: `15`
@@ -111,32 +159,15 @@ For the current demo payload, you should see values close to:
 - `Shift Ratio`: `0.4167`
 - `DGX Payload Available`: `1`
 
-## 7. If `scan-12.local` does not resolve
+## 9. If the DGX host is not reachable from home
 
-Fetch the DGX IP address:
+`scan-12.local` is an event or DGX-network hostname. It should only be used as a scrape target when you are on that network path. If it does not resolve from home, use the local backend path instead, or connect through the office VPN or another reachable DGX address before using the DGX scrape config.
 
-```powershell
-ssh nvidia@scan-12.local 'hostname -I'
-```
+## 10. Quick validation flow
 
-Then replace the scrape target with:
-
-```text
-<DGX-IP>:8000
-```
-
-and test metrics directly with:
-
-```powershell
-curl http://<DGX-IP>:8000/metrics
-```
-
-If needed, make the same substitution in your Grafana Prometheus data source so Grafana and Prometheus both point at the reachable DGX host.
-
-## 8. Quick validation flow
-
-1. Confirm `http://scan-12.local:8000/metrics` is reachable.
-2. Start Prometheus with `infra/prometheus/prometheus.gridflex-demo.yml`.
-3. Open Prometheus at `http://localhost:9090` and confirm the target is `UP`.
-4. Open Grafana and import `infra/grafana/gridflex_demo_dashboard.json`.
-5. Confirm the dashboard panels show live values from the DGX demo backend.
+1. Confirm either `http://localhost:8000/metrics` or `http://scan-12.local:8000/metrics` is reachable.
+2. Start Prometheus directly or with `infra/observability/docker-compose.observability.yml`.
+3. Open `http://localhost:3003` and sign in with `admin / admin` for the local demo stack.
+4. Confirm the `GridFlex Prometheus` datasource is present.
+5. Confirm the `GridFlex Compute v2 - DGX Demo` dashboard is present.
+6. Confirm the panels show live values from the selected GridFlex backend.

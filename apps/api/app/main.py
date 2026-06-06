@@ -5,12 +5,24 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+
+from .env_loader import load_env_file
+
+load_env_file()
 
 from .coordination_kernel_client import get_coordination_kernel_status, schedule_with_coordination_kernel
 from .gpu_pulse_demo import gpu_pulse_capabilities, run_gpu_pulse_demo
 from .live_carbon_signal import fetch_live_carbon_signal
 from .nim_explainer import explain_decision_with_nim, get_nim_status
+from .voice_agent import (
+    get_audio_file_path,
+    handle_voice_agent_message,
+    record_voice_agent_event,
+    voice_agent_evidence,
+    voice_agent_session,
+    voice_agent_status,
+)
 
 try:
     from fastapi.middleware.cors import CORSMiddleware
@@ -567,6 +579,52 @@ def nim_status():
 @app.post("/api/v1/explain-decision")
 def explain_decision(decision_context: dict[str, Any]):
     return explain_decision_with_nim(decision_context)
+
+
+@app.get("/api/v1/voice-agent/status")
+def get_voice_agent_status():
+    return voice_agent_status()
+
+
+@app.get("/api/v1/voice-agent/session")
+def get_voice_agent_session():
+    return voice_agent_session(limit=200)
+
+
+@app.get("/api/v1/voice-agent/evidence")
+def get_voice_agent_evidence():
+    return voice_agent_evidence()
+
+
+@app.post("/api/v1/voice-agent/event")
+def post_voice_agent_event(payload: dict[str, Any]):
+    event_type = str(payload.get("event_type") or "").strip()
+    message = str(payload.get("message") or "").strip()
+    if not event_type or not message:
+        raise HTTPException(status_code=400, detail="event_type and message are required")
+
+    extra = {
+        str(key): value
+        for key, value in payload.items()
+        if key not in {"event_type", "message"}
+    }
+    return record_voice_agent_event(event_type, message, extra=extra)
+
+
+@app.post("/api/v1/voice-agent/message")
+def post_voice_agent_message(payload: dict[str, Any]):
+    message = str(payload.get("message") or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+    return handle_voice_agent_message(message)
+
+
+@app.get("/api/v1/voice-agent/audio/{filename}")
+def get_voice_agent_audio(filename: str):
+    audio_file = get_audio_file_path(filename)
+    if audio_file is None:
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    return FileResponse(audio_file, media_type="audio/mpeg", filename=audio_file.name)
 
 
 @app.get("/api/v1/demo-dgx")

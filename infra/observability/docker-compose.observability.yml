@@ -1,0 +1,40 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: gridflex-observability-prometheus
+    entrypoint:
+      - /bin/sh
+      - -c
+    ports:
+      - "9091:9090"
+    environment:
+      GRIDFLEX_SCRAPE_TARGET: ${GRIDFLEX_SCRAPE_TARGET:-host.docker.internal:8000}
+    command:
+      - |
+        cat <<EOF >/etc/prometheus/prometheus.yml
+        global:
+          scrape_interval: 5s
+
+        scrape_configs:
+          - job_name: "gridflex-api"
+            metrics_path: /metrics
+            static_configs:
+              - targets: ["$${GRIDFLEX_SCRAPE_TARGET}"]
+        EOF
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.enable-lifecycle
+
+  grafana:
+    image: grafana/grafana-oss:11.0.0
+    container_name: gridflex-observability-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../grafana/gridflex_demo_dashboard.json:/var/lib/grafana/dashboards/gridflex_demo_dashboard.json:ro

@@ -14,6 +14,10 @@ data/raw/
 # Generated data products can be recreated by the pipeline
 data/processed/
 
+# Generated pipeline run artifacts
+apps/dgx_pipeline/outputs/data_profile.json
+apps/dgx_pipeline/outputs/data_processing_report.md
+
 # OS/editor artifacts
 .DS_Store
 Thumbs.db

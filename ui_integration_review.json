@@ -1,0 +1,91 @@
+{
+  "framework": "Next.js 16 App Router",
+  "package_manager": "npm",
+  "original_branch": "main",
+  "madhav_branch": "ui-setup",
+  "main_dashboard_files": [
+    "apps/ui/src/app/dashboard/page.tsx",
+    "apps/ui/src/components/GridFlexDashboard.tsx",
+    "apps/ui/src/lib/demo-data.ts",
+    "apps/ui/src/lib/gridflex-api.ts",
+    "apps/ui/src/types/gridflex.ts"
+  ],
+  "data_source_before": "Server-side file read from data/mock/gridflex_demo_response.json via apps/ui/src/lib/demo-data.ts.",
+  "data_source_after": "Server-side API-first fetch from /api/v1/demo using http://scan-12.local:8000 by default, with localhost fallback only if needed and the existing mock JSON as the final fallback.",
+  "api_base_url_used": "http://scan-12.local:8000",
+  "uses_backend_demo_endpoint": true,
+  "uses_mock_fallback": true,
+  "kpi_mapping": {
+    "jobs_total": "data.kpis.jobs_total, shown in the 'Jobs shifted' ratio card",
+    "jobs_shifted": "data.kpis.jobs_shifted, shown in the 'Jobs shifted' ratio card",
+    "jobs_admitted_now": "data.kpis.jobs_admitted_now, shown in the 'Jobs admitted now' card",
+    "deadline_miss_rate": "data.kpis.deadline_miss_rate, shown in the 'Deadline miss rate' card",
+    "gpu_utilisation_preserved_pct": "data.kpis.gpu_utilisation_preserved_pct, shown in the 'GPU utilisation preserved' card",
+    "peak_kwh_avoided": "data.kpis.peak_kwh_avoided, shown in the 'Peak kWh avoided' card",
+    "mean_grid_stress_before": "data.kpis.mean_grid_stress_before, shown in the 'Mean stress before' card",
+    "mean_grid_stress_after": "data.kpis.mean_grid_stress_after, shown in the 'Mean stress after' card",
+    "estimated_carbon_saving_kgco2": "data.kpis.estimated_carbon_saving_kgco2, shown in the 'Carbon saved' card"
+  },
+  "grid_window_mapping": {
+    "timestamp": "data.grid_windows[].timestamp, used for bar keys and time labels in the timeline",
+    "grid_stress_score": "data.grid_windows[].grid_stress_score, used for bar heights and tooltips",
+    "predicted_grid_stress_score": "data.grid_windows[].predicted_grid_stress_score, shown in the timeline tooltip",
+    "stress_band": "data.grid_windows[].stress_band, used for bar color classes",
+    "predicted_stress_band": "Available in the live payload and typed in the frontend, but not yet rendered as a distinct visual element"
+  },
+  "decision_mapping": {
+    "job_id": "data.decisions[].job_id, used in the decision table and explanation panel",
+    "decision": "data.decisions[].decision, used in the decision table and workload table badges",
+    "delay_minutes": "data.decisions[].delay_minutes, used in the decision table and explanation panel heading",
+    "grid_stress_before": "data.decisions[].grid_stress_before, shown in the decision table",
+    "grid_stress_after": "data.decisions[].grid_stress_after, shown in the decision table",
+    "reason_code": "data.decisions[].reason_code, shown in the decision table",
+    "nim_explanation": "data.decisions[].nim_explanation, shown in the explanation panel"
+  },
+  "missing_backend_fields": [
+    "grid_windows[].predicted_stress_band is not yet rendered as a separate badge or chart layer",
+    "grid_windows[].zone is not surfaced in the dashboard",
+    "grid_windows[].carbon_intensity_gco2_kwh is not surfaced in the dashboard",
+    "grid_windows[].tariff_p_per_kwh is not surfaced in the dashboard",
+    "grid_windows[].flexibility_event is not surfaced in the dashboard",
+    "grid_windows[].source is not surfaced in the dashboard",
+    "workloads[].submitted_at is not surfaced in the dashboard",
+    "workloads[].duration_minutes is not surfaced in the dashboard",
+    "workloads[].estimated_energy_kwh is not surfaced in the dashboard",
+    "workloads[].urgency_class is not surfaced in the dashboard",
+    "workloads[].deadline_at is not surfaced in the dashboard",
+    "decisions[].original_start is not surfaced in the dashboard",
+    "decisions[].scheduled_start is only surfaced indirectly in the workload table",
+    "decisions[].estimated_energy_kwh is not surfaced in the dashboard",
+    "decisions[].estimated_peak_kwh_avoided is not surfaced in the dashboard"
+  ],
+  "frontend_fields_not_in_backend": [],
+  "blocking_issues": [],
+  "non_blocking_issues": [
+    "npm install modified apps/ui/package-lock.json even though no dependency changes were required for the API wiring",
+    "next build emits a non-blocking Turbopack NFT tracing warning related to filesystem-based mock fallback loading",
+    "The dev server started on port 3001 because port 3000 was already in use locally"
+  ],
+  "files_changed": [
+    "apps/ui/package-lock.json",
+    "apps/ui/src/app/dashboard/loading.tsx",
+    "apps/ui/src/app/dashboard/page.tsx",
+    "apps/ui/src/components/GridFlexDashboard.tsx",
+    "apps/ui/src/lib/demo-data.ts",
+    "apps/ui/src/lib/gridflex-api.ts",
+    "apps/ui/src/types/gridflex.ts"
+  ],
+  "run_commands": [
+    "cd apps/ui && npm install",
+    "cd apps/ui && npm run build",
+    "cd apps/ui && npm run dev"
+  ],
+  "test_result": {
+    "install": "success",
+    "dev_server_started": "success on http://localhost:3001",
+    "api_fetch_success": "success via http://scan-12.local:8000/api/v1/demo",
+    "ui_render_success": "success in browser at http://localhost:3001/dashboard"
+  },
+  "safe_to_merge": true,
+  "recommended_next_action": "Review whether Madhav wants the currently unrendered grid-window metadata and decision energy fields surfaced before opening a merge request; the API integration itself is working and merge-safe."
+}

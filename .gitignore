@@ -1,0 +1,19 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+
+# Local environment files
+.env
+.env.*
+
+# Raw source data should stay local/DGX only
+data/raw/
+
+# Generated data products can be recreated by the pipeline
+data/processed/
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "gridflex-api-dgx-demo"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["scan-12.local:8000"]

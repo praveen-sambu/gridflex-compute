@@ -69,8 +69,8 @@ def select_prediction_window(predictions_df: Any, window_size: int = 36) -> Any:
     best_score = (-1, -1.0)
     for start in range(0, candidate_count - window_size + 1):
         candidate = predictions_df.iloc[start : start + window_size]
-        medium_high_count = int((candidate["predicted_stress_band"] != "low").sum())
-        mean_score = float(candidate["predicted_grid_stress_score"].mean())
+        medium_high_count = int((candidate["predicted_next_stress_band"] != "low").sum())
+        mean_score = float(candidate["predicted_next_grid_stress_score"].mean())
         score = (medium_high_count, mean_score)
         if score > best_score:
             best_score = score

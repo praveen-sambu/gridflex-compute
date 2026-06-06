@@ -2,6 +2,9 @@ import type { Decision, GridFlexResponse, GridWindow, Workload } from "@/types/g
 
 type DashboardProps = {
   data: GridFlexResponse;
+  dataSource: "api" | "mock";
+  statusMessage?: string | null;
+  apiBaseUrl?: string | null;
 };
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -33,7 +36,11 @@ function GridTimeline({ windows }: { windows: GridWindow[] }) {
       <h2>24 half-hour grid windows</h2>
       <div className="timeline" aria-label="Grid stress timeline">
         {windows.map((window) => (
-          <div className="window-bar" key={window.timestamp} title={`${formatTime(window.timestamp)} · ${window.grid_stress_score}`}>
+          <div
+            className="window-bar"
+            key={window.timestamp}
+            title={`${formatTime(window.timestamp)} · current ${window.grid_stress_score} · predicted ${window.predicted_grid_stress_score ?? window.grid_stress_score}`}
+          >
             <div
               className={`bar ${window.stress_band}`}
               style={{ height: `${Math.max(window.grid_stress_score * 180, 18)}px` }}
@@ -88,6 +95,42 @@ function WorkloadTable({ workloads, decisions }: { workloads: Workload[]; decisi
   );
 }
 
+function DecisionTable({ decisions }: { decisions: Decision[] }) {
+  return (
+    <section className="panel">
+      <h2>Decision table</h2>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th>Decision</th>
+              <th>Delay</th>
+              <th>Before</th>
+              <th>After</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {decisions.slice(0, 8).map((decision) => (
+              <tr key={decision.job_id}>
+                <td>{decision.job_id}</td>
+                <td>
+                  <span className={`pill ${decision.decision}`}>{decision.decision}</span>
+                </td>
+                <td>{decision.delay_minutes} min</td>
+                <td>{decision.grid_stress_before.toFixed(3)}</td>
+                <td>{decision.grid_stress_after.toFixed(3)}</td>
+                <td>{decision.reason_code}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function DecisionInsights({ decisions }: { decisions: Decision[] }) {
   return (
     <section className="panel">
@@ -106,7 +149,7 @@ function DecisionInsights({ decisions }: { decisions: Decision[] }) {
   );
 }
 
-export function GridFlexDashboard({ data }: DashboardProps) {
+export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl }: DashboardProps) {
   return (
     <main className="shell">
       <section className="hero">
@@ -121,13 +164,34 @@ export function GridFlexDashboard({ data }: DashboardProps) {
           <br />
           Generated
           <strong>{new Date(data.generated_at).toLocaleString()}</strong>
+          <br />
+          Source
+          <strong>{dataSource === "api" ? "Live API" : "Mock fallback"}</strong>
+          {apiBaseUrl ? (
+            <>
+              <br />
+              Endpoint
+              <strong>{apiBaseUrl}</strong>
+            </>
+          ) : null}
         </aside>
       </section>
 
+      {statusMessage ? (
+        <section className="panel" aria-live="polite">
+          <strong>{dataSource === "api" ? "Connected to backend" : "Live API unavailable"}</strong>
+          <p>{statusMessage}</p>
+        </section>
+      ) : null}
+
       <section className="kpi-grid" aria-label="GridFlex KPIs">
         <KpiCard label="Jobs shifted" value={`${data.kpis.jobs_shifted}/${data.kpis.jobs_total}`} />
+        <KpiCard label="Jobs admitted now" value={data.kpis.jobs_admitted_now} />
         <KpiCard label="GPU utilisation preserved" value={formatPct(data.kpis.gpu_utilisation_preserved_pct)} />
         <KpiCard label="Deadline miss rate" value={formatPct(data.kpis.deadline_miss_rate)} />
+        <KpiCard label="Peak kWh avoided" value={data.kpis.peak_kwh_avoided} />
+        <KpiCard label="Mean stress before" value={data.kpis.mean_grid_stress_before.toFixed(3)} />
+        <KpiCard label="Mean stress after" value={data.kpis.mean_grid_stress_after.toFixed(3)} />
         <KpiCard label="Carbon saved" value={`${data.kpis.estimated_carbon_saving_kgco2} kgCO₂`} />
       </section>
 
@@ -136,6 +200,8 @@ export function GridFlexDashboard({ data }: DashboardProps) {
           <GridTimeline windows={data.grid_windows} />
           <div style={{ height: 18 }} />
           <WorkloadTable workloads={data.workloads} decisions={data.decisions} />
+          <div style={{ height: 18 }} />
+          <DecisionTable decisions={data.decisions} />
         </div>
         <DecisionInsights decisions={data.decisions} />
       </section>

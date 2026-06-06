@@ -16,7 +16,9 @@ export type GridWindow = {
   timestamp: string;
   zone: string;
   grid_stress_score: number;
+  predicted_grid_stress_score: number;
   stress_band: StressBand;
+  predicted_stress_band: StressBand;
   carbon_intensity_gco2_kwh: number;
   tariff_p_per_kwh: number;
   flexibility_event: boolean;

@@ -1,5 +1,7 @@
 import type { Decision, GridFlexResponse, GridWindow, Workload } from "@/types/gridflex";
 
+import { LiveCarbonSignalCard } from "@/components/LiveCarbonSignalCard";
+
 type DashboardProps = {
   data: GridFlexResponse;
   dataSource: "api" | "mock";
@@ -203,7 +205,11 @@ export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl 
           <div style={{ height: 18 }} />
           <DecisionTable decisions={data.decisions} />
         </div>
-        <DecisionInsights decisions={data.decisions} />
+        <div>
+          <LiveCarbonSignalCard apiBaseUrl={apiBaseUrl} />
+          <div style={{ height: 18 }} />
+          <DecisionInsights decisions={data.decisions} />
+        </div>
       </section>
     </main>
   );

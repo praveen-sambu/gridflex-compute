@@ -62,3 +62,15 @@ export type GridFlexResponse = {
   workloads: Workload[];
   decisions: Decision[];
 };
+
+export type LiveCarbonSignalResponse = {
+  status: "ok" | "fallback";
+  source: string;
+  current_intensity: number | null;
+  index: string;
+  from?: string | null;
+  to?: string | null;
+  recommendation: "run_now" | "run_selective" | "delay_flexible_jobs" | "use_gridflex_forecast" | string;
+  reason: string;
+  operator_message: string;
+};

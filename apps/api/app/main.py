@@ -7,6 +7,10 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 
+from .coordination_kernel_client import schedule_with_coordination_kernel
+from .live_carbon_signal import fetch_live_carbon_signal
+from .nim_explainer import explain_decision_with_nim, get_nim_status
+
 try:
     from fastapi.middleware.cors import CORSMiddleware
 except Exception:  # pragma: no cover - middleware availability depends on FastAPI install
@@ -20,7 +24,9 @@ DGX = ROOT / "data" / "mock" / "gridflex_demo_response_dgx.json"
 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://localhost:3001",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
@@ -81,6 +87,23 @@ def _active_payload() -> tuple[str, dict[str, Any], bool]:
         return "mock", mock_payload, False
 
     raise HTTPException(status_code=503, detail="No valid demo payload is available")
+
+
+def _coordination_kernel_payload() -> dict[str, Any]:
+    _, payload, _ = _active_payload()
+    schedule_result = schedule_with_coordination_kernel(
+        grid_windows=payload["grid_windows"],
+        workloads=payload["workloads"],
+    )
+    if schedule_result is None:
+        fallback_payload = dict(payload)
+        fallback_payload["coordination_kernel_status"] = "fallback"
+        return fallback_payload
+
+    merged_payload = dict(payload)
+    merged_payload["kpis"] = schedule_result["kpis"]
+    merged_payload["decisions"] = schedule_result["decisions"]
+    return merged_payload
 
 
 def _safe_float(value: Any) -> float:
@@ -155,6 +178,26 @@ def health():
 def demo():
     _, payload, _ = _active_payload()
     return payload
+
+
+@app.get("/api/v1/demo-coord")
+def demo_coord():
+    return _coordination_kernel_payload()
+
+
+@app.get("/api/v1/live-carbon")
+def live_carbon():
+    return fetch_live_carbon_signal()
+
+
+@app.get("/api/v1/nim-status")
+def nim_status():
+    return get_nim_status()
+
+
+@app.post("/api/v1/explain-decision")
+def explain_decision(decision_context: dict[str, Any]):
+    return explain_decision_with_nim(decision_context)
 
 
 @app.get("/api/v1/demo-dgx")

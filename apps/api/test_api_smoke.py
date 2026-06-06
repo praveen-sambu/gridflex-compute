@@ -25,6 +25,7 @@ def main() -> int:
     try:
         health = fetch_json(args.base_url, "/health")
         demo = fetch_json(args.base_url, "/api/v1/demo")
+        demo_coord = fetch_json(args.base_url, "/api/v1/demo-coord")
         demo_dgx = fetch_json(args.base_url, "/api/v1/demo-dgx")
         kpis = fetch_json(args.base_url, "/api/v1/kpis")
         metrics = fetch_text(args.base_url, "/metrics")
@@ -32,6 +33,10 @@ def main() -> int:
         checks = {
             "health_status_ok": health.get("status") == "ok",
             "demo_has_kpis": isinstance(demo, dict) and "kpis" in demo,
+            "demo_coord_has_kpis": isinstance(demo_coord, dict) and "kpis" in demo_coord,
+            "demo_coord_has_decisions": isinstance(demo_coord, dict) and isinstance(demo_coord.get("decisions"), list),
+            "demo_coord_uses_live_or_fallback": isinstance(demo_coord, dict)
+            and demo_coord.get("coordination_kernel_status") in (None, "fallback"),
             "demo_dgx_has_run_id": isinstance(demo_dgx, dict) and "run_id" in demo_dgx,
             "kpis_has_jobs_total": isinstance(kpis, dict) and "jobs_total" in kpis,
             "metrics_contains_jobs_total": "gridflex_jobs_total" in metrics,
@@ -41,6 +46,7 @@ def main() -> int:
         summary = {
             "base_url": args.base_url,
             "checks": checks,
+            "coordination_kernel_status": demo_coord.get("coordination_kernel_status") if isinstance(demo_coord, dict) else None,
             "failed": failed,
         }
         print(json.dumps(summary, indent=2))

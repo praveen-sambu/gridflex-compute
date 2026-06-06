@@ -1,0 +1,33 @@
+{
+  "title": "GridFlex Compute v2 - Hackathon Demo",
+  "panels": [
+    {
+      "title": "Jobs Shifted",
+      "metric": "gridflex_jobs_shifted_total",
+      "type": "stat"
+    },
+    {
+      "title": "Peak kWh Avoided",
+      "metric": "gridflex_peak_kwh_avoided",
+      "type": "stat"
+    },
+    {
+      "title": "GPU Utilisation Preserved",
+      "metric": "gridflex_gpu_utilisation_preserved_pct",
+      "type": "gauge"
+    },
+    {
+      "title": "Stress Before vs After",
+      "metrics": [
+        "gridflex_grid_stress_before",
+        "gridflex_grid_stress_after"
+      ],
+      "type": "timeseries"
+    },
+    {
+      "title": "Deadline Miss Rate",
+      "metric": "gridflex_deadline_miss_rate",
+      "type": "stat"
+    }
+  ]
+}

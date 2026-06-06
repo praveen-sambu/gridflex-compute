@@ -1,0 +1,13 @@
+{
+  "rows": 1048575,
+  "unique_households": 31,
+  "tariff_types": {
+    "Std": 1048575
+  },
+  "datetime_min": "2011-12-06 13:00:00",
+  "datetime_max": "2014-02-28 00:00:00",
+  "bad_kwh_rows": 31,
+  "duplicate_rows": 722,
+  "kwh_halfhour_mean": 0.22970738279738379,
+  "kwh_halfhour_max": 6.5279999
+}

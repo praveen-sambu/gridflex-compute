@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GridFlexDecisionResponse",
+  "type": "object",
+  "required": [
+    "run_id",
+    "kpis",
+    "grid_windows",
+    "workloads",
+    "decisions"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "kpis": {
+      "type": "object"
+    },
+    "grid_windows": {
+      "type": "array"
+    },
+    "workloads": {
+      "type": "array"
+    },
+    "decisions": {
+      "type": "array"
+    }
+  }
+}

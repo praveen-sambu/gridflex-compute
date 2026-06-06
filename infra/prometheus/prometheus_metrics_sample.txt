@@ -1,0 +1,27 @@
+# HELP gridflex_jobs_total Total AI jobs processed by GridFlex.
+# TYPE gridflex_jobs_total counter
+gridflex_jobs_total 18
+
+# HELP gridflex_jobs_shifted_total Total jobs shifted to lower grid-stress windows.
+# TYPE gridflex_jobs_shifted_total counter
+gridflex_jobs_shifted_total 16
+
+# HELP gridflex_peak_kwh_avoided Estimated kWh avoided during high-stress windows.
+# TYPE gridflex_peak_kwh_avoided gauge
+gridflex_peak_kwh_avoided 0
+
+# HELP gridflex_gpu_utilisation_preserved_pct Estimated GPU utilisation preserved after rescheduling.
+# TYPE gridflex_gpu_utilisation_preserved_pct gauge
+gridflex_gpu_utilisation_preserved_pct 96.4
+
+# HELP gridflex_grid_stress_before Mean stress score before GridFlex scheduling.
+# TYPE gridflex_grid_stress_before gauge
+gridflex_grid_stress_before 0.243
+
+# HELP gridflex_grid_stress_after Mean stress score after GridFlex scheduling.
+# TYPE gridflex_grid_stress_after gauge
+gridflex_grid_stress_after 0.208
+
+# HELP gridflex_deadline_miss_rate Deadline miss rate after scheduling.
+# TYPE gridflex_deadline_miss_rate gauge
+gridflex_deadline_miss_rate 0

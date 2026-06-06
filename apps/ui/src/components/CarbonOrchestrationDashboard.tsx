@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 
 import type { CarbonOrchestrationResponse, CarbonOrchestrationWorkload } from "@/types/gridflex";
 
@@ -55,18 +56,46 @@ function WorkloadDecisionTable({ workloads }: { workloads: CarbonOrchestrationWo
           </thead>
           <tbody>
             {workloads.map((workload) => (
-              <tr key={workload.job_id}>
-                <td>{workload.job_id}</td>
-                <td>{formatWorkloadType(workload.workload_type)}</td>
-                <td>{workload.gpu_count}</td>
-                <td>{workload.estimated_duration_minutes} min</td>
-                <td>{workload.estimated_energy_kwh} kWh</td>
-                <td>{workload.urgency_class}</td>
-                <td>{workload.deadline_minutes} min</td>
-                <td>
-                  <span className={`pill ${workload.decision}`}>{formatWorkloadType(workload.decision)}</span>
-                </td>
-              </tr>
+              <Fragment key={workload.job_id}>
+                <tr>
+                  <td>{workload.job_id}</td>
+                  <td>{formatWorkloadType(workload.workload_type)}</td>
+                  <td>{workload.gpu_count}</td>
+                  <td>{workload.estimated_duration_minutes} min</td>
+                  <td>{workload.estimated_energy_kwh} kWh</td>
+                  <td>{workload.urgency_class}</td>
+                  <td>{workload.deadline_minutes} min</td>
+                  <td>
+                    <span className={`decision-badge ${workload.decision}`}>
+                      <span aria-hidden="true" />
+                      {formatWorkloadType(workload.decision)}
+                    </span>
+                  </td>
+                </tr>
+                <tr className="job-detail-row">
+                  <td colSpan={8}>
+                    <div className="job-detail-card live-carbon-job-detail">
+                      <div>
+                        <span>Reason</span>
+                        <strong>{formatWorkloadType(workload.reason)}</strong>
+                      </div>
+                      <div>
+                        <span>Energy</span>
+                        <strong>{workload.estimated_energy_kwh} kWh</strong>
+                      </div>
+                      <div>
+                        <span>Deadline</span>
+                        <strong>{workload.deadline_minutes} min</strong>
+                      </div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{formatWorkloadType(workload.decision)}</strong>
+                      </div>
+                      <p>{workload.operator_message}</p>
+                    </div>
+                  </td>
+                </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>

@@ -1,0 +1,10 @@
+{
+  "hostname": "scan-12",
+  "python_executable": "/home/nvidia/gridflex-compute/.venv-dgx/bin/python",
+  "cupy_version": "14.1.1",
+  "gpu_test_status": "PASS",
+  "gpu_array_size": 1000000,
+  "gpu_sum_result": 499999539200.0,
+  "note": "The ML model used sklearn; DGX GPU availability was verified separately through CuPy.",
+  "error": null
+}

@@ -1,0 +1,49 @@
+{
+  "hostname": "scan-12",
+  "python_executable": "/home/nvidia/gridflex-compute/.venv-dgx/bin/python",
+  "training_ran_on_dgx": true,
+  "used_cuml": false,
+  "used_sklearn": true,
+  "regression_model": "RandomForestRegressor",
+  "classification_model": "RandomForestClassifier",
+  "train_rows": 31236,
+  "test_rows": 7810,
+  "feature_count": 18,
+  "regression_metrics": {
+    "mae": 0.0369882115503678,
+    "rmse": 0.0526039269045957,
+    "r2": 0.7847183183455926
+  },
+  "classification_metrics": {
+    "accuracy": 0.8512163892445582,
+    "confusion_matrix_labels": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "confusion_matrix": [
+      [
+        5007,
+        293,
+        0
+      ],
+      [
+        808,
+        1631,
+        9
+      ],
+      [
+        28,
+        24,
+        10
+      ]
+    ],
+    "class_distribution": {
+      "low": 5300,
+      "medium": 2448,
+      "high": 62
+    }
+  },
+  "cupy_gpu_test_passed": true,
+  "cupy_gpu_evidence_path": "/home/nvidia/gridflex-compute/apps/dgx_pipeline/outputs/cupy_gpu_training_evidence.json"
+}

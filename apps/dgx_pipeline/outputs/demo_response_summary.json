@@ -1,0 +1,22 @@
+{
+  "hostname": "scan-12",
+  "python_executable": "/home/nvidia/gridflex-compute/.venv-dgx/bin/python",
+  "output_path": "/home/nvidia/gridflex-compute/data/mock/gridflex_demo_response_dgx.json",
+  "grid_window_count": 36,
+  "workload_count": 36,
+  "decision_count": 36,
+  "shifted_jobs": 15,
+  "kpis": {
+    "jobs_total": 36,
+    "jobs_shifted": 15,
+    "jobs_admitted_now": 21,
+    "deadline_miss_rate": 0,
+    "gpu_utilisation_preserved_pct": 97.08,
+    "peak_kwh_avoided": 3.5173,
+    "mean_grid_stress_before": 0.382975,
+    "mean_grid_stress_after": 0.374178,
+    "estimated_carbon_saving_kgco2": 1.4774
+  },
+  "schema_found": true,
+  "json_parsed_successfully": true
+}

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { Decision, GridFlexResponse, GridWindow, Workload } from "@/types/gridflex";
 
 import { LiveCarbonSignalCard } from "@/components/LiveCarbonSignalCard";
@@ -183,6 +185,11 @@ export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl 
         <section className="panel" aria-live="polite">
           <strong>{dataSource === "api" ? "Connected to backend" : "Live API unavailable"}</strong>
           <p>{statusMessage}</p>
+          <div className="button-row">
+            <Link className="button" href="/dashboard/live-carbon">
+              Open Live Carbon Orchestrator
+            </Link>
+          </div>
         </section>
       ) : null}
 

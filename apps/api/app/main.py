@@ -106,6 +106,197 @@ def _coordination_kernel_payload() -> dict[str, Any]:
     return merged_payload
 
 
+def _carbon_orchestration_seed_workloads() -> list[dict[str, Any]]:
+    return [
+        {
+            "job_id": "carbon-job-001",
+            "workload_type": "llm_finetune",
+            "gpu_count": 8,
+            "estimated_duration_minutes": 180,
+            "estimated_energy_kwh": 62.0,
+            "urgency_class": "urgent",
+            "deadline_minutes": 90,
+        },
+        {
+            "job_id": "carbon-job-002",
+            "workload_type": "batch_inference",
+            "gpu_count": 4,
+            "estimated_duration_minutes": 90,
+            "estimated_energy_kwh": 18.0,
+            "urgency_class": "flexible",
+            "deadline_minutes": 360,
+        },
+        {
+            "job_id": "carbon-job-003",
+            "workload_type": "rag_embedding",
+            "gpu_count": 2,
+            "estimated_duration_minutes": 45,
+            "estimated_energy_kwh": 7.0,
+            "urgency_class": "interactive",
+            "deadline_minutes": 60,
+        },
+        {
+            "job_id": "carbon-job-004",
+            "workload_type": "model_eval",
+            "gpu_count": 2,
+            "estimated_duration_minutes": 50,
+            "estimated_energy_kwh": 9.0,
+            "urgency_class": "standard",
+            "deadline_minutes": 120,
+        },
+        {
+            "job_id": "carbon-job-005",
+            "workload_type": "nightly_training",
+            "gpu_count": 8,
+            "estimated_duration_minutes": 240,
+            "estimated_energy_kwh": 88.0,
+            "urgency_class": "flexible",
+            "deadline_minutes": 600,
+        },
+        {
+            "job_id": "carbon-job-006",
+            "workload_type": "batch_inference",
+            "gpu_count": 6,
+            "estimated_duration_minutes": 150,
+            "estimated_energy_kwh": 28.0,
+            "urgency_class": "flexible",
+            "deadline_minutes": 480,
+        },
+        {
+            "job_id": "carbon-job-007",
+            "workload_type": "llm_finetune",
+            "gpu_count": 4,
+            "estimated_duration_minutes": 120,
+            "estimated_energy_kwh": 34.0,
+            "urgency_class": "standard",
+            "deadline_minutes": 180,
+        },
+        {
+            "job_id": "carbon-job-008",
+            "workload_type": "model_eval",
+            "gpu_count": 1,
+            "estimated_duration_minutes": 30,
+            "estimated_energy_kwh": 4.0,
+            "urgency_class": "urgent",
+            "deadline_minutes": 45,
+        },
+    ]
+
+
+def _is_urgent_workload(workload: dict[str, Any]) -> bool:
+    return workload["urgency_class"] in {"urgent", "interactive"} or workload["deadline_minutes"] <= 90
+
+
+def _carbon_policy_decision(
+    workload: dict[str, Any],
+    *,
+    live_carbon: dict[str, Any],
+) -> tuple[str, str, str]:
+    if live_carbon.get("status") != "ok" or live_carbon.get("current_intensity") is None:
+        fallback_message = "Live carbon unavailable; use GridFlex forecast."
+        return ("use_gridflex_forecast", fallback_message, fallback_message)
+
+    intensity = float(live_carbon["current_intensity"])
+    workload_type = workload["workload_type"].replace("_", " ")
+    urgent = _is_urgent_workload(workload)
+
+    if intensity <= 180:
+        return (
+            "run_now",
+            f"Carbon intensity is {intensity:.0f} gCO2/kWh, so this {workload_type} workload can run now.",
+            f"Run {workload['job_id']} now because live carbon intensity is low and the workload fits the current policy window.",
+        )
+
+    if intensity <= 300:
+        if urgent:
+            return (
+                "run_now",
+                f"Carbon intensity is {intensity:.0f} gCO2/kWh. This workload is urgent enough to run now.",
+                f"Run {workload['job_id']} now because it is urgent or interactive, even though carbon intensity is moderate.",
+            )
+
+        return (
+            "request_cleaner_window",
+            f"Carbon intensity is {intensity:.0f} gCO2/kWh, so flexible GPU work should wait for a cleaner window.",
+            f"Delay {workload['job_id']} and request a cleaner resource window because the job is flexible and the carbon signal is only moderate.",
+        )
+
+    if urgent:
+        return (
+            "run_now",
+            f"Carbon intensity is {intensity:.0f} gCO2/kWh, but this urgent workload still runs now to protect delivery timing.",
+            f"Run {workload['job_id']} now because it is urgent and cannot wait, despite a high live carbon signal.",
+        )
+
+    return (
+        "request_cleaner_window",
+        f"Carbon intensity is {intensity:.0f} gCO2/kWh, so flexible GPU work should be delayed.",
+        f"Delay {workload['job_id']} and request a cleaner resource window because live carbon intensity is high and the workload is flexible.",
+    )
+
+
+def _build_carbon_orchestration_demo() -> dict[str, Any]:
+    live_carbon = fetch_live_carbon_signal()
+    workloads: list[dict[str, Any]] = []
+    jobs_run_now = 0
+    jobs_delayed = 0
+    estimated_energy_shifted_kwh = 0.0
+    estimated_carbon_avoided_kgco2 = 0.0
+
+    current_intensity = live_carbon.get("current_intensity")
+    cleaner_window_target = 180.0
+
+    for seed_workload in _carbon_orchestration_seed_workloads():
+        decision, reason, operator_message = _carbon_policy_decision(seed_workload, live_carbon=live_carbon)
+        workload = dict(seed_workload)
+        workload["decision"] = decision
+        workload["reason"] = reason
+        workload["operator_message"] = operator_message
+        workloads.append(workload)
+
+        if decision == "run_now":
+            jobs_run_now += 1
+        elif decision == "request_cleaner_window":
+            jobs_delayed += 1
+            estimated_energy_shifted_kwh += float(workload["estimated_energy_kwh"])
+            if isinstance(current_intensity, (int, float)):
+                estimated_carbon_avoided_kgco2 += float(workload["estimated_energy_kwh"]) * max(
+                    float(current_intensity) - cleaner_window_target,
+                    0.0,
+                ) / 1000.0
+
+    if live_carbon.get("status") == "ok" and isinstance(current_intensity, (int, float)):
+        if current_intensity <= 180:
+            operator_summary = (
+                f"Live carbon is low at {current_intensity:.0f} gCO2/kWh. Run most AI training and inference jobs now."
+            )
+        elif current_intensity <= 300:
+            operator_summary = (
+                f"Live carbon is moderate at {current_intensity:.0f} gCO2/kWh. Run urgent jobs now and hold flexible jobs for a cleaner window."
+            )
+        else:
+            operator_summary = (
+                f"Live carbon is high at {current_intensity:.0f} gCO2/kWh. Only urgent jobs should run now; flexible jobs should wait."
+            )
+    else:
+        operator_summary = "Live carbon unavailable; use GridFlex forecast."
+
+    return {
+        "status": live_carbon.get("status", "fallback"),
+        "source": "NESO Carbon Intensity API + GridFlex policy",
+        "live_carbon": live_carbon,
+        "kpis": {
+            "jobs_total": len(workloads),
+            "jobs_run_now": jobs_run_now,
+            "jobs_delayed": jobs_delayed,
+            "estimated_energy_shifted_kwh": round(estimated_energy_shifted_kwh, 1),
+            "estimated_carbon_avoided_kgco2": round(estimated_carbon_avoided_kgco2, 3),
+        },
+        "workloads": workloads,
+        "operator_summary": operator_summary,
+    }
+
+
 def _safe_float(value: Any) -> float:
     try:
         return float(value)
@@ -188,6 +379,11 @@ def demo_coord():
 @app.get("/api/v1/live-carbon")
 def live_carbon():
     return fetch_live_carbon_signal()
+
+
+@app.get("/api/v1/carbon-orchestration-demo")
+def carbon_orchestration_demo():
+    return _build_carbon_orchestration_demo()
 
 
 @app.get("/api/v1/nim-status")

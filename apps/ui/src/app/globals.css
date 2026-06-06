@@ -240,6 +240,17 @@ th {
   color: #bbf7d0;
 }
 
+.pill.run_now {
+  background: rgba(110, 231, 183, 0.16);
+  color: #bbf7d0;
+}
+
+.pill.request_cleaner_window,
+.pill.use_gridflex_forecast {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fecaca;
+}
+
 .insight-list {
   display: grid;
   gap: 12px;
@@ -334,6 +345,20 @@ th {
 .voice-ready-box strong {
   display: block;
   margin-bottom: 6px;
+}
+
+.page-nav {
+  margin-bottom: 18px;
+}
+
+.panel-subtitle {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.operator-summary {
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
 @media (max-width: 900px) {

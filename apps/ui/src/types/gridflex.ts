@@ -74,3 +74,33 @@ export type LiveCarbonSignalResponse = {
   reason: string;
   operator_message: string;
 };
+
+export type CarbonOrchestrationKpis = {
+  jobs_total: number;
+  jobs_run_now: number;
+  jobs_delayed: number;
+  estimated_energy_shifted_kwh: number;
+  estimated_carbon_avoided_kgco2: number;
+};
+
+export type CarbonOrchestrationWorkload = {
+  job_id: string;
+  workload_type: string;
+  gpu_count: number;
+  estimated_duration_minutes: number;
+  estimated_energy_kwh: number;
+  urgency_class: string;
+  deadline_minutes: number;
+  decision: string;
+  reason: string;
+  operator_message: string;
+};
+
+export type CarbonOrchestrationResponse = {
+  status: "ok" | "fallback";
+  source: string;
+  live_carbon: LiveCarbonSignalResponse;
+  kpis: CarbonOrchestrationKpis;
+  workloads: CarbonOrchestrationWorkload[];
+  operator_summary: string;
+};

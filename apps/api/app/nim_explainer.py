@@ -9,7 +9,7 @@ LOGGER = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
 DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
-DEFAULT_TIMEOUT_SECONDS = 20.0
+DEFAULT_TIMEOUT_SECONDS = 2.0
 MAX_TOKENS = 100
 TEMPERATURE = 0.2
 TOP_P = 0.8

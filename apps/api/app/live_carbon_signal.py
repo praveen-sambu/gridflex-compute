@@ -6,7 +6,7 @@ import urllib.request
 from typing import Any
 
 NESO_CARBON_INTENSITY_URL = "https://api.carbonintensity.org.uk/intensity"
-TIMEOUT_SECONDS = 5
+TIMEOUT_SECONDS = 2
 FALLBACK_REASON = "Live carbon signal unavailable; using GridFlex DGX-trained forecast instead."
 
 

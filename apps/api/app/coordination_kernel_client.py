@@ -8,7 +8,7 @@ import urllib.request
 from typing import Any
 
 LOGGER = logging.getLogger(__name__)
-TIMEOUT_SECONDS = 3
+TIMEOUT_SECONDS = 2
 
 
 def _coordination_kernel_enabled() -> bool:

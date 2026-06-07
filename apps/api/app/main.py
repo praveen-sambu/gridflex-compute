@@ -399,19 +399,13 @@ def _build_control_loop_demo() -> dict[str, Any]:
 
     chosen_decision = coordination_decision or local_decision or {}
     current_window = payload.get("grid_windows", [None])[0] if isinstance(payload.get("grid_windows"), list) else None
-    nim_response = explain_decision_with_nim(
-        {
-            "job_id": sample_job.get("job_id"),
-            "decision": decision,
-            "reason_code": chosen_decision.get("reason_code") or "LIVE_CARBON_POLICY",
-            "grid_stress_before": chosen_decision.get("grid_stress_before") or (current_window or {}).get("predicted_grid_stress_score") or (current_window or {}).get("grid_stress_score"),
-            "grid_stress_after": chosen_decision.get("grid_stress_after") or chosen_decision.get("grid_stress_before") or (current_window or {}).get("predicted_grid_stress_score") or (current_window or {}).get("grid_stress_score"),
-            "delay_minutes": delay_minutes,
-            "deadline_protected": True,
-            "carbon_signal": live_carbon.get("index") or live_carbon.get("recommendation"),
-            "workload_type": sample_job.get("workload_type"),
-        }
-    )
+    nim_response = {
+        "source": "fallback",
+        "model": nim_status["model"],
+        "operator_message": reason,
+        "provider_latency_ms": None,
+        "fallback_reason": "control_loop_demo_local_explanation",
+    }
 
     return {
         "status": "ok",

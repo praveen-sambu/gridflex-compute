@@ -306,10 +306,7 @@ export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl 
           Demo run
           <strong>{data.run_id}</strong>
           <br />
-          Generated
-          <strong>{new Date(data.generated_at).toLocaleString()}</strong>
-          <br />
-          Viewed live
+          Dashboard live now
           <LiveTimestamp />
           <br />
           Source

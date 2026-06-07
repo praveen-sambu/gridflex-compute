@@ -47,10 +47,6 @@ function formatUtcDateTime(value: string) {
   return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} UTC`;
 }
 
-function formatJson(value: unknown) {
-  return JSON.stringify(value, null, 2);
-}
-
 function StatusCard({ label, value }: { label: string; value: string }) {
   return (
     <article className="status-card">
@@ -60,12 +56,35 @@ function StatusCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StatusTag({ label, tone = "default" }: { label: string; tone?: "default" | "ok" | "warn" | "info" }) {
+  return <span className={`status-tag ${tone}`}>{label}</span>;
+}
+
 function ReadinessItem({ label, value }: { label: string; value: boolean }) {
   return (
     <div className="readiness-item">
       <span>{label}</span>
       <span className={`pill ${value ? "ok" : "fallback"}`}>{formatBooleanState(value)}</span>
     </div>
+  );
+}
+
+function PipelineStep({ title, detail, outcome }: { title: string; detail: string; outcome?: string }) {
+  return (
+    <article className="pipeline-step-card">
+      <span>{title}</span>
+      <strong>{detail}</strong>
+      {outcome ? <small>{outcome}</small> : null}
+    </article>
+  );
+}
+
+function KernelStat({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="kernel-stat-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
   );
 }
 
@@ -111,8 +130,8 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
         <section className="hero">
           <div>
             <p className="eyebrow">control loop demo</p>
-            <h1>Live AI-factory control loop</h1>
-            <p className="lede">This additive page keeps the main dashboard intact and adds a control-loop story driven by live carbon, readiness, and a manual GPU pulse.</p>
+            <h1>Live AI factory control loop</h1>
+            <p className="lede">Carbon-aware AI job admission with readiness gating and bounded DGX pulse controls.</p>
           </div>
         </section>
 
@@ -139,7 +158,13 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
         <div>
           <p className="eyebrow">control loop demo</p>
           <h1>Real-time AI training admission and DGX pulse control</h1>
-          <p className="lede">This page combines live carbon, coordination readiness, optional NIM explanation, and a manual GPU pulse into a single operator-facing control loop.</p>
+          <p className="lede">This page combines live carbon, coordination readiness, optional Nemotron reasoning, and a bounded DGX pulse into a single operator console.</p>
+          <p className="hero-copy">The control loop decides whether the next AI workload should run now or shift later, while keeping the manual DGX probe explicitly button-driven and bounded.</p>
+          <div className="status-tag-row">
+            <StatusTag label={controlLoop.sources.live_carbon_used ? "Live carbon active" : "Carbon fallback"} tone={controlLoop.sources.live_carbon_used ? "ok" : "warn"} />
+            <StatusTag label={controlLoop.sources.dgx_payload_used ? "DGX payload live" : "Payload fallback"} tone={controlLoop.sources.dgx_payload_used ? "ok" : "warn"} />
+            <StatusTag label={controlLoop.component_sources.gpu_pulse.gpu_pulse_enabled ? "GPU pulse enabled" : "GPU pulse disabled"} tone={controlLoop.component_sources.gpu_pulse.gpu_pulse_enabled ? "info" : "warn"} />
+          </div>
         </div>
         <aside className="meta-card">
           Active payload
@@ -156,6 +181,7 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
       <section className="panel live-carbon-card" aria-live="polite">
         <div className="live-carbon-header">
           <div>
+            <p className="section-kicker">decision engine</p>
             <h2>Control-loop decision</h2>
             <p className="panel-subtitle">{controlLoop.reason}</p>
           </div>
@@ -172,14 +198,67 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
           <strong>Operator explanation</strong>
           <p>{controlLoop.operator_message}</p>
         </div>
+
+        <div className="status-tag-row">
+          <StatusTag label={controlLoop.sources.dgx_payload_used ? "DGX payload" : "Payload fallback"} tone={controlLoop.sources.dgx_payload_used ? "ok" : "warn"} />
+          <StatusTag label={controlLoop.sources.live_carbon_used ? "Live carbon" : "Carbon fallback"} tone={controlLoop.sources.live_carbon_used ? "ok" : "warn"} />
+          <StatusTag label={controlLoop.sources.coordination_api_used ? "Coordination API" : "Coordination fallback"} tone={controlLoop.sources.coordination_api_used ? "ok" : "warn"} />
+          <StatusTag label={controlLoop.sources.nemotron_used ? "Nemotron" : "Nemotron fallback"} tone={controlLoop.sources.nemotron_used ? "ok" : "warn"} />
+          <StatusTag label={controlLoop.component_sources.gpu_pulse.gpu_pulse_enabled ? "GPU pulse" : "Pulse disabled"} tone={controlLoop.component_sources.gpu_pulse.gpu_pulse_enabled ? "info" : "warn"} />
+        </div>
+      </section>
+
+      <section className="metric-strip" aria-label="Control loop highlights">
+        <StatusCard label="Incoming job" value={incomingJob.job_id} />
+        <StatusCard label="Live carbon" value={typeof liveSignal.current_intensity === "number" ? `${liveSignal.current_intensity} gCO2/kWh` : "Unavailable"} />
+        <StatusCard label="Energy shifted" value={`${controlLoop.estimated_energy_shifted_kwh} kWh`} />
+        <StatusCard label="Decision" value={formatWorkloadType(controlLoop.decision)} />
+      </section>
+
+      <section className="panel simulator-panel">
+        <div className="section-heading-row">
+          <div>
+            <p className="section-kicker">decision pipeline</p>
+            <h2>Incoming job is evaluated across the control loop kernel</h2>
+          </div>
+          <StatusTag label={formatWorkloadType(controlLoop.decision)} tone={controlLoop.decision === "run_now" ? "ok" : "warn"} />
+        </div>
+
+        <div className="control-kernel-hero">
+          <div className="control-kernel-core pulse-frame">
+            <span>Active decision kernel</span>
+            <strong>{controlLoop.reason}</strong>
+            <p>{controlLoop.operator_message}</p>
+          </div>
+          <div className="control-kernel-stats">
+            <KernelStat label="Incoming job" value={incomingJob.job_id} />
+            <KernelStat label="Carbon signal" value={typeof liveSignal.current_intensity === "number" ? `${liveSignal.current_intensity} gCO2/kWh` : "Unavailable"} />
+            <KernelStat label="Recommended action" value={formatWorkloadType(controlLoop.decision)} />
+            <KernelStat label="Shift potential" value={`${controlLoop.estimated_energy_shifted_kwh} kWh`} />
+          </div>
+        </div>
+
+        <div className="decision-pipeline-grid">
+          <PipelineStep title="1. Incoming training job" detail={incomingJob.job_id} outcome={`${incomingJob.gpu_count} GPUs · ${incomingJob.duration_minutes} min`} />
+          <PipelineStep title="2. Live carbon signal" detail={typeof liveSignal.current_intensity === "number" ? `${liveSignal.current_intensity} gCO2/kWh` : "Unavailable"} outcome={liveSignal.recommendation.replaceAll("_", " ")} />
+          <PipelineStep title="3. GridFlex policy" detail={controlLoop.reason} outcome={`${controlLoop.estimated_energy_shifted_kwh} kWh shift potential`} />
+          <PipelineStep title="4. Coordination and explanation" detail={`${controlLoop.component_sources.coordination_api} · ${controlLoop.component_sources.nemotron}`} outcome={controlLoop.operator_message} />
+          <PipelineStep title="5. Final action" detail={formatWorkloadType(controlLoop.decision)} outcome={pulseResult ? `Pulse ${pulseResult.status}` : "Awaiting optional pulse"} />
+        </div>
       </section>
 
       <section className="control-loop-grid">
-        <div>
+        <div className="stack-column">
           <section className="panel">
-            <h2>Incoming AI training job</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">incoming workload</p>
+                <h2>Incoming AI training job</h2>
+              </div>
+              <StatusTag label={incomingJob.urgency_class} tone="info" />
+            </div>
             <div className="table-wrap">
-              <table>
+              <table className="data-table">
                 <tbody>
                   <tr><th>Job ID</th><td>{incomingJob.job_id}</td></tr>
                   <tr><th>Tenant</th><td>{incomingJob.tenant}</td></tr>
@@ -194,10 +273,13 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
             </div>
           </section>
 
-          <div style={{ height: 18 }} />
-
           <section className="panel">
-            <h2>Component sources</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">integration sources</p>
+                <h2>Component sources</h2>
+              </div>
+            </div>
             <div className="source-chip-row">
               <div className="source-chip"><span>Live carbon</span><strong>{controlLoop.component_sources.live_carbon}</strong></div>
               <div className="source-chip"><span>Coordination API</span><strong>{controlLoop.component_sources.coordination_api}</strong></div>
@@ -206,13 +288,12 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
             </div>
           </section>
 
-          <div style={{ height: 18 }} />
-
           <section className="panel pulse-panel">
             <div className="live-carbon-header">
               <div>
+                <p className="section-kicker">bounded dgx probe</p>
                 <h2>Manual GPU pulse</h2>
-                <p className="panel-subtitle">Runs only on button click. It never starts automatically when the page loads.</p>
+                <p className="panel-subtitle">Runs only on button click. It never starts automatically when the page loads and remains capped by the backend safe limit.</p>
               </div>
               <span className={`pill ${controlLoop.component_sources.gpu_pulse.gpu_pulse_enabled ? "enabled" : "disabled"}`}>
                 {controlLoop.component_sources.gpu_pulse.gpu_pulse_enabled ? "enabled" : "disabled"}
@@ -227,9 +308,11 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
 
             <div className="button-row">
               <button className="button primary" type="button" onClick={handleRunGpuPulse} disabled={runningPulse}>
-                {runningPulse ? "Running GPU Pulse..." : "Run Manual GPU Pulse"}
+                {runningPulse ? "Running bounded DGX pulse..." : "Run bounded DGX pulse"}
               </button>
             </div>
+
+            <p className="control-loop-warning">This demo probe is manual, bounded, and presentation-safe. It is intended to show controlled DGX interaction, not continuous workload execution.</p>
 
             {pulseError ? (
               <div className="voice-ready-box">
@@ -239,17 +322,38 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
             ) : null}
 
             {pulseResult ? (
-              <div className="pulse-result">
-                <strong>Pulse response</strong>
-                <pre>{formatJson(pulseResult)}</pre>
+              <div className="pulse-result-card">
+                <div className="section-heading-row">
+                  <div>
+                    <p className="section-kicker">last pulse result</p>
+                    <h2>DGX pulse summary</h2>
+                  </div>
+                  <span className={`pill ${pulseResult.status === "ok" ? "ok" : "fallback"}`}>{pulseResult.status}</span>
+                </div>
+                <div className="pulse-metrics">
+                  <StatusCard label="Backend used" value={pulseResult.backend_used ?? "unknown"} />
+                  <StatusCard label="Duration" value={pulseResult.duration_ms ? `${pulseResult.duration_ms} ms` : "n/a"} />
+                  <StatusCard label="Safety cap" value={pulseResult.safe_limit_seconds ? `${pulseResult.safe_limit_seconds} s` : "n/a"} />
+                </div>
+                <div className="readiness-list">
+                  <div className="readiness-item"><span>Started at</span><span>{pulseResult.started_at ? formatUtcDateTime(pulseResult.started_at) : "n/a"}</span></div>
+                  <div className="readiness-item"><span>Iterations</span><span>{pulseResult.details?.iterations ?? "n/a"}</span></div>
+                  <div className="readiness-item"><span>Target runtime</span><span>{pulseResult.details?.target_runtime_seconds ? `${pulseResult.details.target_runtime_seconds} s` : "n/a"}</span></div>
+                  <div className="readiness-item"><span>Message</span><span>{pulseResult.message ?? "GPU pulse completed."}</span></div>
+                </div>
               </div>
             ) : null}
           </section>
         </div>
 
-        <div>
+        <div className="stack-column">
           <section className="panel">
-            <h2>Demo readiness</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">readiness board</p>
+                <h2>Demo readiness</h2>
+              </div>
+            </div>
             <div className="readiness-list">
               <ReadinessItem label="DGX backend" value={readiness.dgx_backend_ready} />
               <ReadinessItem label="Demo payload" value={readiness.demo_payload_ready} />
@@ -261,10 +365,13 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
             </div>
           </section>
 
-          <div style={{ height: 18 }} />
-
           <section className="panel">
-            <h2>Source flags</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">execution flags</p>
+                <h2>Source flags</h2>
+              </div>
+            </div>
             <div className="readiness-list">
               <ReadinessItem label="Live carbon used" value={controlLoop.sources.live_carbon_used} />
               <ReadinessItem label="Coordination API used" value={controlLoop.sources.coordination_api_used} />

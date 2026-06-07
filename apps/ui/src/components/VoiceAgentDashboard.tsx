@@ -19,6 +19,14 @@ type VoiceAgentDashboardProps = {
   error?: string | null;
 };
 
+type LatestResponseMeta = {
+  question: string;
+  source: string;
+  memoryUsed: boolean;
+  audioAvailable: boolean;
+  fallbackReason?: string | null;
+};
+
 type SpeechRecognitionResultLike = {
   results: ArrayLike<{
     0: { transcript: string };
@@ -128,6 +136,10 @@ function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
   );
 }
 
+function StatusTag({ label, tone = "default" }: { label: string; tone?: "default" | "ok" | "warn" | "info" }) {
+  return <span className={`status-tag ${tone}`}>{label}</span>;
+}
+
 export function VoiceAgentDashboard({
   status,
   session,
@@ -142,6 +154,7 @@ export function VoiceAgentDashboard({
   const [input, setInput] = useState("");
   const [reply, setReply] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [latestResponse, setLatestResponse] = useState<LatestResponseMeta | null>(null);
   const [feedback, setFeedback] = useState<string | null>(error ?? null);
   const [busy, setBusy] = useState(false);
   const [micSupported, setMicSupported] = useState(false);
@@ -232,6 +245,13 @@ export function VoiceAgentDashboard({
       const payload = (await response.json()) as VoiceAgentMessageResponse;
       setReply(payload.reply);
       setAudioUrl(payload.audio_url ? `${baseUrl}${payload.audio_url}` : null);
+      setLatestResponse({
+        question: message,
+        source: payload.source,
+        memoryUsed: payload.memory_used,
+        audioAvailable: payload.audio_available,
+        fallbackReason: payload.fallback_reason,
+      });
       setFeedback(payload.source === "nvidia-nemotron" ? "Nemotron response received." : "Fallback response received.");
       setInput("");
 
@@ -307,8 +327,8 @@ export function VoiceAgentDashboard({
         <section className="hero">
           <div>
             <p className="eyebrow">voice memory agent</p>
-            <h1>GridFlex Voice Memory Agent</h1>
-            <p className="lede">This isolated bounty page keeps the main GridFlex demo intact while adding a long-running voice-memory assistant.</p>
+            <h1>ElevenLabs + NVIDIA Nemotron Voice Memory Agent</h1>
+            <p className="lede">An isolated bounty page for long-running session memory, Nemotron recall, and ElevenLabs voice output.</p>
           </div>
         </section>
 
@@ -331,8 +351,14 @@ export function VoiceAgentDashboard({
       <section className="hero">
         <div>
           <p className="eyebrow">voice memory agent</p>
-          <h1>GridFlex Voice Memory Agent</h1>
-          <p className="lede">An isolated bounty track for long-running event memory, Nemotron reasoning, and ElevenLabs voice output without touching the existing GridFlex demo flows.</p>
+          <h1>ElevenLabs + NVIDIA Nemotron Voice Memory Agent</h1>
+          <p className="lede">A long-running bounty track for memory recall, voice interaction, and backend-only model integration without changing the main GridFlex demo.</p>
+          <p className="hero-copy">This page is designed to prove that the agent can remember earlier events, answer from session history, and return spoken output while the main demo remains untouched.</p>
+          <div className="status-tag-row">
+            <StatusTag label={statusState.nemotron_configured ? "Nemotron ready" : "Nemotron fallback"} tone={statusState.nemotron_configured ? "ok" : "warn"} />
+            <StatusTag label={statusState.elevenlabs_configured ? "ElevenLabs ready" : "Audio unavailable"} tone={statusState.elevenlabs_configured ? "ok" : "warn"} />
+            <StatusTag label={sessionState.events_logged > 0 ? "Session memory active" : "Awaiting history"} tone="info" />
+          </div>
         </div>
         <aside className="meta-card">
           Bounty target
@@ -349,6 +375,7 @@ export function VoiceAgentDashboard({
       <section className="panel voice-agent-hero" aria-live="polite">
         <div className="live-carbon-header">
           <div>
+            <p className="section-kicker">bounty timer</p>
             <h2>Session timer</h2>
             <p className="panel-subtitle">Keep this page and the backend session running for at least 71 minutes to satisfy the bounty evidence requirement.</p>
           </div>
@@ -359,11 +386,17 @@ export function VoiceAgentDashboard({
           <StatusCard label="Elapsed" value={formatDuration(elapsedSeconds)} />
           <StatusCard label="Events logged" value={String(statusState.events_logged)} />
           <StatusCard label="Target" value={`${statusState.target_minutes} min`} />
+          <StatusCard label="Memory recall" value={sessionState.events_logged > 1 ? "available" : "warming up"} />
         </div>
 
         <div className="dashboard-grid voice-agent-summary-grid">
           <div className="panel voice-agent-subpanel">
-            <h2>Status badges</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">runtime status</p>
+                <h2>Status badges</h2>
+              </div>
+            </div>
             <div className="readiness-list">
               <StatusBadge label="Nemotron configured" ok={statusState.nemotron_configured} />
               <StatusBadge label="ElevenLabs configured" ok={statusState.elevenlabs_configured} />
@@ -372,7 +405,12 @@ export function VoiceAgentDashboard({
           </div>
 
           <div className="panel voice-agent-subpanel">
-            <h2>Evidence</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">evidence bundle</p>
+                <h2>Evidence</h2>
+              </div>
+            </div>
             <div className="readiness-list">
               <div className="readiness-item"><span>Started at</span><span>{formatUtcDateTime(evidenceState.session_started_at)}</span></div>
               <div className="readiness-item"><span>Current time</span><span>{formatUtcDateTime(evidenceState.current_time)}</span></div>
@@ -384,10 +422,11 @@ export function VoiceAgentDashboard({
       </section>
 
       <section className="voice-agent-grid">
-        <div>
+        <div className="stack-column">
           <section className="panel voice-chat-panel">
             <div className="live-carbon-header">
               <div>
+                <p className="section-kicker">interactive console</p>
                 <h2>Chat and voice I/O</h2>
                 <p className="panel-subtitle">Voice input uses browser microphone capture when available. Voice output uses backend ElevenLabs audio whenever the backend returns it.</p>
               </div>
@@ -432,10 +471,27 @@ export function VoiceAgentDashboard({
               </div>
             ) : null}
 
-            {reply ? (
-              <div className="voice-ready-box">
-                <strong>Latest reply</strong>
-                <p>{reply}</p>
+            {latestResponse ? (
+              <div className="voice-chat-transcript">
+                <div className="voice-chat-bubble user">
+                  <span className="voice-chat-role">User question</span>
+                  <p>{latestResponse.question}</p>
+                </div>
+
+                {reply ? (
+                  <div className="voice-chat-bubble assistant">
+                    <div className="voice-chat-header">
+                      <span className="voice-chat-role">Agent reply</span>
+                      <div className="status-tag-row compact">
+                        <StatusTag label={latestResponse.source === "nvidia-nemotron" ? "Nemotron" : "Fallback"} tone={latestResponse.source === "nvidia-nemotron" ? "ok" : "warn"} />
+                        <StatusTag label={latestResponse.memoryUsed ? "Memory used" : "No memory used"} tone={latestResponse.memoryUsed ? "info" : "default"} />
+                        <StatusTag label={latestResponse.audioAvailable ? "Audio ready" : "No audio"} tone={latestResponse.audioAvailable ? "ok" : "warn"} />
+                      </div>
+                    </div>
+                    <p>{reply}</p>
+                    {latestResponse.fallbackReason ? <p className="table-secondary">Fallback reason: {latestResponse.fallbackReason}</p> : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -448,11 +504,16 @@ export function VoiceAgentDashboard({
           </section>
         </div>
 
-        <div>
+        <div className="stack-column">
           <section className="panel">
-            <h2>Session event log</h2>
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">memory ledger</p>
+                <h2>Session event log</h2>
+              </div>
+            </div>
             <div className="table-wrap">
-              <table>
+              <table className="data-table data-table-relaxed">
                 <thead>
                   <tr>
                     <th>Time</th>

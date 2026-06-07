@@ -6,6 +6,7 @@ import type {
   ControlLoopDemoResponse,
   DemoReadinessResponse,
   GridFlexResponse,
+  LiveCarbonSignalResponse,
   VoiceAgentEvidenceResponse,
   VoiceAgentSessionResponse,
   VoiceAgentStatusResponse,
@@ -144,6 +145,20 @@ export async function getCarbonOrchestrationDemoData(): Promise<CarbonOrchestrat
     apiBaseUrl: resolveBaseUrls()[0] ?? null,
     error: attemptedErrors.join("; ") || "API unavailable"
   };
+}
+
+export async function getLiveCarbonSignalData(preferredBaseUrl?: string | null): Promise<LiveCarbonSignalResponse | null> {
+  const baseUrls = preferredBaseUrl ? [preferredBaseUrl] : resolveBaseUrls();
+
+  for (const baseUrl of baseUrls) {
+    try {
+      return await fetchJsonFromApi<LiveCarbonSignalResponse>(baseUrl, "/api/v1/live-carbon");
+    } catch {
+      // Fall through to the next base URL.
+    }
+  }
+
+  return null;
 }
 
 export async function getControlLoopDashboardData(): Promise<ControlLoopDashboardDataResult> {

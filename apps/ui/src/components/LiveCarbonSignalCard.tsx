@@ -9,6 +9,8 @@ const FALLBACK_MESSAGE = "Live carbon signal unavailable; using GridFlex forecas
 
 type LiveCarbonSignalCardProps = {
   apiBaseUrl?: string | null;
+  initialSignal?: LiveCarbonSignalResponse | null;
+  disableLiveFetch?: boolean;
 };
 
 function formatTimeWindow(value: string | null | undefined) {
@@ -27,11 +29,17 @@ function normalizeBaseUrl(apiBaseUrl?: string | null) {
   return (apiBaseUrl?.trim() || DEFAULT_API_BASE_URL).replace(/\/$/, "");
 }
 
-export function LiveCarbonSignalCard({ apiBaseUrl }: LiveCarbonSignalCardProps) {
-  const [signal, setSignal] = useState<LiveCarbonSignalResponse | null>(null);
-  const [message, setMessage] = useState("Checking live carbon signal...");
+export function LiveCarbonSignalCard({ apiBaseUrl, initialSignal = null, disableLiveFetch = false }: LiveCarbonSignalCardProps) {
+  const [signal, setSignal] = useState<LiveCarbonSignalResponse | null>(initialSignal);
+  const [message, setMessage] = useState(
+    initialSignal ? (initialSignal.status === "ok" ? `Live carbon signal from ${initialSignal.source}.` : FALLBACK_MESSAGE) : disableLiveFetch ? FALLBACK_MESSAGE : "Checking live carbon signal...",
+  );
 
   useEffect(() => {
+    if (initialSignal || disableLiveFetch) {
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 6500);
 
@@ -63,7 +71,7 @@ export function LiveCarbonSignalCard({ apiBaseUrl }: LiveCarbonSignalCardProps) 
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, disableLiveFetch, initialSignal]);
 
   const intensityText = typeof signal?.current_intensity === "number" ? `${signal.current_intensity} gCO2/kWh` : "Unavailable";
   const recommendation = signal?.recommendation ?? "use_gridflex_forecast";
@@ -73,7 +81,8 @@ export function LiveCarbonSignalCard({ apiBaseUrl }: LiveCarbonSignalCardProps) 
     <section className="panel live-carbon-card" aria-live="polite">
       <div className="live-carbon-header">
         <div>
-          <h2>Live Carbon Signal</h2>
+          <p className="section-kicker">carbon telemetry</p>
+          <h2>Live carbon signal</h2>
           <p className="live-carbon-status">{message}</p>
         </div>
         <span className={`pill live-carbon-pill ${recommendation}`}>{recommendation.replaceAll("_", " ")}</span>
@@ -96,10 +105,21 @@ export function LiveCarbonSignalCard({ apiBaseUrl }: LiveCarbonSignalCardProps) 
         </article>
       </div>
 
+      <div className="live-carbon-hero-strip">
+        <div className="live-carbon-hero-value">
+          <span>Run window</span>
+          <strong>{recommendation.replaceAll("_", " ")}</strong>
+        </div>
+        <div className="live-carbon-hero-copy">
+          <span>Decision story</span>
+          <p>{signal?.reason ?? FALLBACK_MESSAGE}</p>
+        </div>
+      </div>
+
       <p className="live-carbon-reason">{signal?.reason ?? FALLBACK_MESSAGE}</p>
 
-      <div className="voice-ready-box">
-        <strong>Voice-ready explanation</strong>
+      <div className="voice-ready-box live-carbon-callout">
+        <strong>Operator callout</strong>
         <p>{operatorMessage}</p>
       </div>
     </section>

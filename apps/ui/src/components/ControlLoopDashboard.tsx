@@ -9,6 +9,8 @@ import type {
   GpuPulseDemoResponse,
 } from "@/types/gridflex";
 
+import { DashboardTopNav } from "@/components/DashboardTopNav";
+
 type ControlLoopDashboardProps = {
   controlLoop: ControlLoopDemoResponse | null;
   readiness: DemoReadinessResponse | null;
@@ -121,11 +123,7 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
   if (!controlLoop || !readiness) {
     return (
       <main className="shell">
-        <div className="page-nav button-row">
-          <Link className="button" href="/dashboard">
-            Back to GridFlex Dashboard
-          </Link>
-        </div>
+        <DashboardTopNav activeRoute="control-loop" />
 
         <section className="hero">
           <div>
@@ -148,11 +146,7 @@ export function ControlLoopDashboard({ controlLoop, readiness, apiBaseUrl, error
 
   return (
     <main className="shell">
-      <div className="page-nav button-row">
-        <Link className="button" href="/dashboard">
-          Back to GridFlex Dashboard
-        </Link>
-      </div>
+      <DashboardTopNav activeRoute="control-loop" />
 
       <section className="hero">
         <div>

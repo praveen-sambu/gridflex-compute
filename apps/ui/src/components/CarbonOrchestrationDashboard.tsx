@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import type { CarbonOrchestrationResponse, CarbonOrchestrationWorkload } from "@/types/gridflex";
 
+import { DashboardTopNav } from "@/components/DashboardTopNav";
+
 type CarbonOrchestrationDashboardProps = {
   data: CarbonOrchestrationResponse | null;
   apiBaseUrl?: string | null;
@@ -145,11 +147,7 @@ export function CarbonOrchestrationDashboard({ data, apiBaseUrl, error }: Carbon
   if (!data) {
     return (
       <main className="shell">
-        <div className="page-nav button-row">
-          <Link className="button" href="/dashboard">
-            Back to GridFlex Dashboard
-          </Link>
-        </div>
+        <DashboardTopNav activeRoute="live-carbon" />
 
         <section className="hero">
           <div>
@@ -172,11 +170,7 @@ export function CarbonOrchestrationDashboard({ data, apiBaseUrl, error }: Carbon
 
   return (
     <main className="shell">
-      <div className="page-nav button-row">
-        <Link className="button" href="/dashboard">
-          Back to GridFlex Dashboard
-        </Link>
-      </div>
+      <DashboardTopNav activeRoute="live-carbon" />
 
       <section className="hero">
         <div>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import type {
@@ -10,6 +9,8 @@ import type {
   VoiceAgentSessionResponse,
   VoiceAgentStatusResponse,
 } from "@/types/gridflex";
+
+import { DashboardTopNav } from "@/components/DashboardTopNav";
 
 type VoiceAgentDashboardProps = {
   status: VoiceAgentStatusResponse | null;
@@ -159,14 +160,16 @@ export function VoiceAgentDashboard({
   const [busy, setBusy] = useState(false);
   const [micSupported, setMicSupported] = useState(false);
   const [listening, setListening] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(
-    status?.started_at ? Math.max(0, Math.floor((Date.now() - new Date(status.started_at).getTime()) / 1000)) : 0,
-  );
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
     const ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    setMicSupported(Boolean(ctor));
+    const timerId = window.setTimeout(() => {
+      setMicSupported(Boolean(ctor));
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
   }, []);
 
   useEffect(() => {
@@ -318,11 +321,7 @@ export function VoiceAgentDashboard({
   if (!statusState || !sessionState || !evidenceState) {
     return (
       <main className="shell">
-        <div className="page-nav button-row">
-          <Link className="button" href="/dashboard">
-            Back to GridFlex Dashboard
-          </Link>
-        </div>
+        <DashboardTopNav activeRoute="voice-agent" />
 
         <section className="hero">
           <div>
@@ -342,11 +341,7 @@ export function VoiceAgentDashboard({
 
   return (
     <main className="shell">
-      <div className="page-nav button-row">
-        <Link className="button" href="/dashboard">
-          Back to GridFlex Dashboard
-        </Link>
-      </div>
+      <DashboardTopNav activeRoute="voice-agent" />
 
       <section className="hero">
         <div>

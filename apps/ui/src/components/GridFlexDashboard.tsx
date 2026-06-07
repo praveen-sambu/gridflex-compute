@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { Decision, GridFlexResponse, GridWindow, LiveCarbonSignalResponse, Workload } from "@/types/gridflex";
 
+import { DashboardTopNav } from "@/components/DashboardTopNav";
 import { LiveCarbonSignalCard } from "@/components/LiveCarbonSignalCard";
 
 type DashboardProps = {
@@ -73,7 +74,21 @@ function MetricCard({ label, value }: { label: string; value: string | number })
   );
 }
 
-function StressComparison({ before, after }: { before: number; after: number }) {
+function StressComparison({
+  before,
+  after,
+  jobsShifted,
+  peakKwhAvoided,
+  carbonSavingKg,
+  deadlineMissRate,
+}: {
+  before: number;
+  after: number;
+  jobsShifted: number;
+  peakKwhAvoided: number;
+  carbonSavingKg: number;
+  deadlineMissRate: number;
+}) {
   const beforePct = Math.max(10, Math.min(100, before * 100));
   const afterPct = Math.max(8, Math.min(100, after * 100));
   const reductionPct = Math.max(0, ((before - after) / Math.max(before, 0.001)) * 100);
@@ -82,15 +97,17 @@ function StressComparison({ before, after }: { before: number; after: number }) 
     <section className="panel stress-comparison-panel">
       <div className="section-heading-row">
         <div>
-          <p className="section-kicker">before vs after stress</p>
-          <h2>Grid stress is visibly flattened before AI jobs hit peak hours</h2>
+          <p className="section-kicker">grid stress summary</p>
+          <h2>Grid Stress Impact</h2>
         </div>
         <StatusTag label={`${reductionPct.toFixed(1)}% stress reduction`} tone="ok" />
       </div>
 
+      <p className="stress-scale-note">Grid stress is a normalized 0-1 score. Lower is better.</p>
+
       <div className="stress-compare-grid">
         <div className="stress-meter-card before">
-          <span className="stress-meter-label">Before GridFlex</span>
+          <span className="stress-meter-label">Average stress before</span>
           <strong>{before.toFixed(3)}</strong>
           <div className="stress-meter-track" aria-label="Before grid stress">
             <div className="stress-danger-line" />
@@ -99,7 +116,7 @@ function StressComparison({ before, after }: { before: number; after: number }) 
         </div>
 
         <div className="stress-meter-card after">
-          <span className="stress-meter-label">After GridFlex</span>
+          <span className="stress-meter-label">Average stress after</span>
           <strong>{after.toFixed(3)}</strong>
           <div className="stress-meter-track" aria-label="After grid stress">
             <div className="stress-danger-line" />
@@ -108,7 +125,26 @@ function StressComparison({ before, after }: { before: number; after: number }) 
         </div>
       </div>
 
-      <p className="stress-annotation">Flexible AI workloads are shifted away from stressed grid windows while preserving GPU utilisation.</p>
+      <div className="stress-kpi-row" aria-label="Grid stress supporting KPIs">
+        <div className="stress-kpi-chip">
+          <span>Jobs shifted</span>
+          <strong>{jobsShifted}</strong>
+        </div>
+        <div className="stress-kpi-chip">
+          <span>Peak kWh avoided</span>
+          <strong>{peakKwhAvoided.toFixed(2)}</strong>
+        </div>
+        <div className="stress-kpi-chip">
+          <span>Carbon saving</span>
+          <strong>{carbonSavingKg.toFixed(2)} kgCO2</strong>
+        </div>
+        <div className="stress-kpi-chip">
+          <span>Deadline miss rate</span>
+          <strong>{formatPct(deadlineMissRate)}</strong>
+        </div>
+      </div>
+
+      <p className="stress-annotation">Average grid stress drops by {reductionPct.toFixed(2)}% while flexible jobs are shifted to reduce pressure on the system.</p>
     </section>
   );
 }
@@ -403,6 +439,8 @@ function DecisionInsights({ decisions }: { decisions: Decision[] }) {
 export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl, liveCarbonSignal }: DashboardProps) {
   return (
     <main className="shell">
+      <DashboardTopNav activeRoute="dashboard" />
+
       <section className="hero">
         <div>
           <p className="eyebrow">GridFlex Compute v2</p>
@@ -473,7 +511,14 @@ export function GridFlexDashboard({ data, dataSource, statusMessage, apiBaseUrl,
 
       <section className="dashboard-grid">
         <div className="stack-column">
-          <StressComparison before={data.kpis.mean_grid_stress_before} after={data.kpis.mean_grid_stress_after} />
+          <StressComparison
+            before={data.kpis.mean_grid_stress_before}
+            after={data.kpis.mean_grid_stress_after}
+            jobsShifted={data.kpis.jobs_shifted}
+            peakKwhAvoided={data.kpis.peak_kwh_avoided}
+            carbonSavingKg={data.kpis.estimated_carbon_saving_kgco2}
+            deadlineMissRate={data.kpis.deadline_miss_rate}
+          />
           <RoutingPipeline workloads={data.workloads} decisions={data.decisions} />
           <GridTimeline windows={data.grid_windows} />
           <WorkloadTable workloads={data.workloads} decisions={data.decisions} />
